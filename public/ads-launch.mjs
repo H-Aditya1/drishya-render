@@ -4,9 +4,9 @@ document.getElementById("advertiseOption")?.addEventListener("click", () => {
   if (!dialog) {
     dialog = document.createElement("dialog");
     dialog.id = "advertiseDialog";
-    dialog.setAttribute("aria-label", "Picture advertising demo");
+    dialog.setAttribute("aria-label", "Buy ad-space");
     Object.assign(dialog.style, {
-      width: "min(650px,94vw)",
+      width: "min(540px,94vw)",
       maxWidth: "94vw",
       padding: "12px",
       background: "#101319",
@@ -21,7 +21,7 @@ document.getElementById("advertiseOption")?.addEventListener("click", () => {
     frame.title = "Pay with MetaMask and upload two pictures";
     Object.assign(frame.style, {
       width: "100%",
-      height: "min(700px,75vh)",
+      height: "min(520px,75vh)",
       border: "0",
       display: "block",
     });

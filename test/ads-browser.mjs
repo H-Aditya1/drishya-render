@@ -18,11 +18,15 @@ fs.mkdirSync("test-results/ads", { recursive: true });
 try {
   await page.goto(base, { waitUntil: "domcontentloaded" });
   assert.equal(await page.locator("iframe").count(), 0);
+  assert.equal(
+    (await page.locator("#advertiseOption").textContent()).trim(),
+    "Buy ad-space",
+  );
   await page.locator("#advertiseOption").click();
   const frame = page.frameLocator("#advertiseDialog iframe");
   await frame
     .locator("#status")
-    .filter({ hasText: "public Solana address" })
+    .filter({ hasText: "unavailable right now" })
     .waitFor();
   assert.equal(await frame.locator("#pay").isDisabled(), true);
   assert.equal(await frame.locator("#artwork").isHidden(), true);
@@ -32,6 +36,8 @@ try {
   await page.locator("#entryForm:not(.hidden)").waitFor();
 
   await context.addInitScript(() => {
+    window.adWalletConnections = 0;
+    window.adWalletPayments = 0;
     const account = {
       address: "11111111111111111111111111111112",
       chains: ["solana:devnet"],
@@ -46,13 +52,17 @@ try {
       features: {
         "standard:connect": {
           version: "1.0.0",
-          connect: async () => ({ accounts: [account] }),
+          connect: async () => {
+            window.adWalletConnections++;
+            return { accounts: [account] };
+          },
         },
         "solana:signAndSendTransaction": {
           version: "1.0.0",
-          signAndSendTransaction: async () => [
-            { signature: new Uint8Array(64).fill(2) },
-          ],
+          signAndSendTransaction: async () => {
+            window.adWalletPayments++;
+            return [{ signature: new Uint8Array(64).fill(2) }];
+          },
         },
       },
     };
@@ -102,12 +112,29 @@ try {
   await page.locator("#advertiseOption").click();
   await frame.locator("#pay:not([disabled])").waitFor();
   assert.equal(await frame.locator("#artwork").isHidden(), true);
+  assert.match(
+    await frame.locator("#terms").textContent(),
+    /Confirm paying 0\.00001 test SOL on Solana Devnet through your MetaMask wallet/,
+  );
+  assert.deepEqual(
+    await frame
+      .locator("body")
+      .evaluate(() => [window.adWalletConnections, window.adWalletPayments]),
+    [0, 0],
+  );
+  await page.screenshot({ path: "test-results/ads/popup-confirmation.png" });
   await frame.locator("#pay").click();
   await frame
     .locator("#status")
-    .filter({ hasText: "Waiting for finalization" })
+    .filter({ hasText: "Waiting for confirmation" })
     .waitFor();
   assert.equal(await frame.locator("#artwork").isHidden(), true);
+  assert.deepEqual(
+    await frame
+      .locator("body")
+      .evaluate(() => [window.adWalletConnections, window.adWalletPayments]),
+    [1, 1],
+  );
   paid = true;
   // Closing and reopening/reloading the popup restores the paid order.
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -145,7 +172,10 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator("#advertiseOption").click();
-  await frame.locator("#status").filter({ hasText: "play normally" }).waitFor();
+  await frame
+    .locator("#status")
+    .filter({ hasText: "unavailable right now" })
+    .waitFor();
   await page.getByRole("button", { name: "CLOSE ×" }).click();
   await page.locator("#enter").click();
   await page.locator("#entryForm:not(.hidden)").waitFor();
