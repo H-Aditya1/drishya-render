@@ -1,5 +1,6 @@
 import * as THREE from "./vendor/three.module.js";
 import { mansionRooms, mansionProps } from "/shared/mansion.mjs";
+import { createSpecialGun } from "./special-gun.mjs";
 
 function surface(kind, color = "#685044", motif = "") {
   const c = document.createElement("canvas");
@@ -416,23 +417,7 @@ export function createFigure(scene, index) {
       gun.add(scratch);
     }
   }
-  const specialGun = new THREE.Group();
-  const specialMetal = new THREE.MeshStandardMaterial({
-    color: 0x8b6949,
-    metalness: 0.7,
-    roughness: 0.45,
-  });
-  const specialBarrel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 0.15, 0.62),
-    specialMetal,
-  );
-  specialBarrel.position.z = -0.08;
-  const specialGrip = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 0.25, 0.14),
-    dark,
-  );
-  specialGrip.position.set(0, -0.15, 0.15);
-  specialGun.add(specialBarrel, specialGrip);
+  const specialGun = createSpecialGun();
   scene.add(specialGun);
   const torch = createTorch();
   scene.add(torch);

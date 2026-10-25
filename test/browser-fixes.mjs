@@ -97,10 +97,33 @@ try {
     renderer.setSize(900, 650);
     document.body.append(renderer.domElement);
     renderer.render(scene, camera);
+    window.preview = { renderer };
     window.bath = mansionProps.find((p) => p.kind === "bathtub");
   });
   assert.equal(await page.evaluate(() => window.bath.z), -15);
   await page.screenshot({ path: path.join(output, "bathroom-clearance.png") });
+  const gunDetails = await page.evaluate(async () => {
+    const THREE = await import("/vendor/three.module.js");
+    const { createSpecialGun } = await import("/special-gun.mjs");
+    const gun = createSpecialGun();
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x17232a);
+    scene.add(gun, new THREE.HemisphereLight(0xffe7c5, 0x536e87, 3));
+    const light = new THREE.DirectionalLight(0xffe8cd, 4);
+    light.position.set(1, 2, -1);
+    scene.add(light);
+    const camera = new THREE.PerspectiveCamera(40, 900 / 650, 0.01, 10);
+    camera.position.set(0.85, 0.4, -1.05);
+    camera.lookAt(0, -0.07, -0.06);
+    window.preview.renderer.render(scene, camera);
+    return {
+      parts: gun.children.length,
+      textures: gun.children.filter((p) => p.material.map).length,
+    };
+  });
+  assert.ok(gunDetails.parts >= 20);
+  assert.ok(gunDetails.textures >= 5);
+  await page.screenshot({ path: path.join(output, "special-gun.png") });
   assert.deepEqual(await page.evaluate(() => window.sound.stats.errors), []);
   assert.deepEqual(errors, []);
   fs.writeFileSync(

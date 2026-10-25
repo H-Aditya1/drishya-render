@@ -2,6 +2,8 @@
 
 ## Render repository fixes — 25 October 2026
 
+- Special weapon now uses a separate procedural hand-cannon model with worn steel, engraved brass eye sideplates, checkered walnut grip, barrel bands, muzzle crown, sights, hammer and trigger guard. Textures/materials are shared by both player models and require no external downloads. Focused browser render passed with textured mesh assertions; preview: `test-results/fixes-1792927178537/special-gun.png`. The same run rechecked both outcome songs twice at 0.995–1.001x with zero errors.
+- Live verification returned HTTP 503 and `x-render-routing: suspend-by-user` with "This service has been suspended by its owner." Repository fixes can be pushed, but live deployment cannot be verified until the owner resumes the service.
 - Music explicitly starts at 1x and restores both current/default playback speed on media play, metadata and rate-change events. Original MP3 files decode without FFmpeg errors; the intermittent user-reported speed change was not reproduced without simulated rate changes.
 - Moved bathroom tub from z=-12 to z=-15. Its bowl, rim, water, tap and feet now derive their position from the same shared prop as its collision box. Checked the rendered bathroom and at least 0.5m clearance from other furniture/walls.
 - All 23 unit/server checks passed. Focused `node test/browser-fixes.mjs` passed four native win/loss playback measurements (0.994–1.001x), forced-speed recovery and ended-track non-replay, with zero page/media errors. Screenshot and timing evidence: `test-results/fixes-1792927027297/`.
