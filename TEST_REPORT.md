@@ -1,5 +1,12 @@
 # Verification — दृश्य
 
+## Cursor-following entrance eye — isolated visual revision
+
+- Supplied video is preserved inside a movable eye layer with a soft warm/red halo, feathered edges and slight movement tilt. Whole eye follows mouse/pen position with frame-rate-independent easing; never intercepts menu clicks.
+- Tracking parks on pointer exit, pauses in hidden tabs and gameplay, and stops requesting frames once settled. Touch devices retain a resting eye. Reduced-motion preference disables the moving eye.
+- Focused browser check passed pointer positions, idle frame stop, click-through hit testing, gameplay video/tracking pause, reduced motion, small viewport and touch fallback with zero page errors. Evidence: `test-results/eye-1792929117448/`.
+- Kept in a separate commit based on e850056 so it can be reverted independently of weapons, audio and bathtub fixes. No gameplay or sound changes in this revision.
+
 ## Latest requested revision — Colt, shotgun and looping music
 
 - Regular weapon is now a Colt-style single-action revolver with six visible cylinder chambers, walnut grip, ejector housing and metal barrel. Special is a visibly distinct textured double-barrel shotgun with walnut fore-end/stock and engraved sideplates. Existing 15/70 damage and 20/1 ammunition remain unchanged.

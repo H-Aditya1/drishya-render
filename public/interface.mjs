@@ -1,4 +1,5 @@
 import { roomAt } from "/shared/special.mjs";
+import { EntranceEye } from "./entrance-eye.mjs";
 
 // Static, deterministic irregularities keep the print distressed without moving text.
 export function distressedText(element, text = element.textContent) {
@@ -32,6 +33,7 @@ const roomNames = {
 export class InterfaceView {
   constructor() {
     this.video = document.getElementById("entranceVideo");
+    this.eye = new EntranceEye(document.getElementById("entranceEye"));
     this.notice = document.getElementById("roomEntry");
     this.stats = { room: null, roomNotices: 0, outcome: null };
     document
@@ -43,6 +45,7 @@ export class InterfaceView {
   setPlaying(playing) {
     if (this.playing === playing) return;
     this.playing = playing;
+    this.eye.setActive(!playing);
     document.body.classList.toggle("in-match", playing);
     if (playing) this.video.pause();
     else void this.video.play().catch(() => {});
