@@ -26,26 +26,34 @@ try {
     },
   );
   const result = await response.json();
-  assert.equal(response.status, 201, result.error);
-  const transaction = Transaction.from(
-    Buffer.from(result.transaction, "base64"),
-  );
-  assert.equal(transaction.feePayer.toBase58(), payer);
-  assert.equal(
-    transaction.instructions[0].keys[1].pubkey.toBase58(),
-    DEFAULT_AD_RECIPIENT,
-  );
-  assert.equal(
-    Buffer.from(transaction.instructions[0].data).readBigUInt64LE(4),
-    10000n,
-  );
-  assert.equal(
-    Buffer.from(transaction.instructions[1].data).toString(),
-    `drishya-ad:${result.id}`,
-  );
-  console.log(
-    "Real Devnet RPC passed: full genesis hash, fresh blockhash, unsigned 0.00001 SOL payment to the configured recipient. No transaction broadcast.",
-  );
+  if (response.status === 400) {
+    assert.match(result.error, /Devnet test SOL/);
+    console.log(
+      "Real Devnet preflight correctly blocked an unfunded test wallet:",
+      result.error,
+    );
+  } else {
+    assert.equal(response.status, 201, result.error);
+    const transaction = Transaction.from(
+      Buffer.from(result.transaction, "base64"),
+    );
+    assert.equal(transaction.feePayer.toBase58(), payer);
+    assert.equal(
+      transaction.instructions[0].keys[1].pubkey.toBase58(),
+      DEFAULT_AD_RECIPIENT,
+    );
+    assert.equal(
+      Buffer.from(transaction.instructions[0].data).readBigUInt64LE(4),
+      10000n,
+    );
+    assert.equal(
+      Buffer.from(transaction.instructions[1].data).toString(),
+      `drishya-ad:${result.id}`,
+    );
+    console.log(
+      "Real Devnet RPC passed: full genesis hash, fresh blockhash, unsigned 0.00001 SOL payment to the configured recipient. No transaction broadcast.",
+    );
+  }
 } finally {
   if (server.listening) await new Promise((resolve) => server.close(resolve));
   fs.rmSync(folder, { recursive: true, force: true });

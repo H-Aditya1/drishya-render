@@ -151,6 +151,12 @@ test("explicitly empty storage disables payments", async () => {
 test("default checkout transaction pays the owner-supplied address on Devnet", async () => {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), "drishya-recipient-"));
   const connection = {
+    getMultipleAccountsInfo: async () => [
+      { lamports: 1000000000n },
+      { lamports: 1000000000n },
+    ],
+    getMinimumBalanceForRentExemption: async () => 650240n,
+    getFeeForMessage: async () => ({ value: 5000n }),
     getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     getLatestBlockhash: async () => ({
       blockhash: (await Keypair.generate()).publicKey.toBase58(),
@@ -180,6 +186,35 @@ test("default checkout transaction pays the owner-supplied address on Devnet", a
       Buffer.from(transaction.instructions[0].data).readBigUInt64LE(4),
       10000n,
     );
+    connection.getMultipleAccountsInfo = async () => [
+      { lamports: 1000000000n },
+      null,
+    ];
+    const unfundedRecipient = await app.request("/orders", { payer });
+    assert.equal(unfundedRecipient.status, 400);
+    assert.match(
+      unfundedRecipient.data.error,
+      /receiving wallet needs free Devnet test SOL/,
+    );
+    connection.getMultipleAccountsInfo = async () => [
+      null,
+      { lamports: 1000000000n },
+    ];
+    const unfundedBuyer = await app.request("/orders", { payer });
+    assert.equal(unfundedBuyer.status, 400);
+    assert.match(
+      unfundedBuyer.data.error,
+      /Add free Devnet test SOL to your MetaMask wallet/,
+    );
+    connection.getMultipleAccountsInfo = async () => [
+      { lamports: 650240n },
+      { lamports: 1000000000n },
+    ];
+    assert.equal(
+      (await app.request("/orders", { payer })).status,
+      400,
+      "Buyer must retain its minimum account balance",
+    );
   } finally {
     await new Promise((r) => app.server.close(r));
     fs.rmSync(folder, { recursive: true, force: true });
@@ -191,6 +226,12 @@ test("orders sanitize images, verify finalized payment, resist replay, queue slo
   const env = { ADS_SOLANA_RECIPIENT: recipient, ADS_DATA_FILE: filename };
   const signatures = new Map();
   const connection = {
+    getMultipleAccountsInfo: async () => [
+      { lamports: 1000000000n },
+      { lamports: 1000000000n },
+    ],
+    getMinimumBalanceForRentExemption: async () => 650240n,
+    getFeeForMessage: async () => ({ value: 5000n }),
     getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     getLatestBlockhash: async () => ({
       blockhash: (await Keypair.generate()).publicKey.toBase58(),

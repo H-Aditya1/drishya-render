@@ -210,6 +210,34 @@ export function createAds({
             data: Buffer.from(`drishya-ad:${order.id}`),
           }),
         );
+        const [accounts, minimum, fee] = await Promise.all([
+          rpc.getMultipleAccountsInfo(
+            [new PublicKey(payer), new PublicKey(recipient)],
+            "confirmed",
+          ),
+          rpc.getMinimumBalanceForRentExemption(0),
+          rpc.getFeeForMessage(tx.compileMessage(), "confirmed"),
+        ]);
+        if (fee.value == null)
+          throw Error("Payment quote expired. Please try again.");
+        const payerBalance = BigInt(accounts[0]?.lamports ?? 0);
+        const recipientBalance = BigInt(accounts[1]?.lamports ?? 0);
+        const payment = BigInt(lamports),
+          networkFee = BigInt(fee.value),
+          rentMinimum = BigInt(minimum);
+        const remaining =
+          payerBalance - networkFee - (payer === recipient ? 0n : payment);
+        if (
+          payerBalance < payment + networkFee ||
+          (remaining > 0n && remaining < rentMinimum)
+        )
+          throw Error(
+            "Add free Devnet test SOL to your MetaMask wallet, then try again.",
+          );
+        if (recipientBalance + payment < rentMinimum)
+          throw Error(
+            "The receiving wallet needs free Devnet test SOL before it can accept this small payment.",
+          );
         orders.push(order);
         save();
         json(res, 201, {
