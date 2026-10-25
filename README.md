@@ -1,5 +1,9 @@
 # दृश्य — Drishya
 
+## Solana Devnet advertising demo
+
+The small **Place your pictures · Devnet demo** home-screen option opens a popup: pay **0.00001 test SOL** through MetaMask, then upload two pictures for the bathroom and corridor-end frames. The option is independent of normal gameplay. Checkout stays disabled until the receiving wallet and persistent storage are configured. Follow [the demo setup guide](docs/advertising-demo.md) for MetaMask, free test SOL and Render settings.
+
 Two players enter a mansion. A local Node server owns movement, damage, ammunition, roles, round progression, teleport permissions, flushing, and the cat's wake-up time.
 
 ## Start
@@ -9,7 +13,7 @@ npm install
 npm start
 ```
 
-Open the printed local address on the host computer. The second laptop opens the printed LAN address on the same network. Enter the same room code. Both players select Ready; the host opens the doors. Node 20+, WebGL, and desktop browsers are required.
+Open the printed local address on the host computer. The second laptop opens the printed LAN address on the same network. Enter the same room code. Both players select Ready; the host opens the doors. Node 22+, WebGL, and desktop browsers are required.
 
 ## Controls
 

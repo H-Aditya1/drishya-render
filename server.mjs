@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto";
 import os from "node:os";
 import { WebSocketServer } from "ws";
 import qr from "qrcode-terminal";
+import { createAds } from "./ads.mjs";
 import {
   move,
   hit,
@@ -53,9 +54,27 @@ const metrics = {
   hits: 0,
   rejected: 0,
 };
-const server = http.createServer((req, res) => {
+let ads;
+try {
+  ads = createAds();
+} catch (error) {
+  console.error("Optional advertising disabled:", error.message);
+  ads = async (req, res, url) => {
+    if (!url.pathname.startsWith("/api/ads")) return false;
+    res.writeHead(503, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        error:
+          "Optional picture checkout is unavailable. You can play normally.",
+      }),
+    );
+    return true;
+  };
+}
+const server = http.createServer(async (req, res) => {
   try {
     let u = new URL(req.url, "http://local");
+    if (await ads(req, res, u)) return;
     if (u.pathname === "/metrics") {
       res.setHeader("Content-Type", "application/json");
       return res.end(

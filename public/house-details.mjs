@@ -214,7 +214,8 @@ export function buildDetails(scene) {
   }
   // Original supplied photographs remain local. Tint and engraved framing belong to the scene.
   const loader = new THREE.TextureLoader();
-  function portrait(url, x, y, z, w, h) {
+  const adMaterials = new Map();
+  function portrait(url, x, y, z, w, h, slot) {
     box(x, y, z, w + 0.23, h + 0.23, 0.13, copper);
     box(x, y, z + 0.08, w + 0.07, h + 0.07, 0.04, wood);
     const texture = loader.load(url);
@@ -224,6 +225,7 @@ export function buildDetails(scene) {
       color: 0xb7ad87,
       roughness: 1,
     });
+    adMaterials.set(slot, { material, url, fallback: url });
     material.onBeforeCompile = (shader) => {
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_fragment>",
@@ -247,8 +249,54 @@ export function buildDetails(scene) {
           copper,
         );
   }
-  portrait("/assets/bathroom-portrait.png", 8, 2, -20.55, 1.35, 1.5);
-  portrait("/assets/corridor-portrait.png", 0, 2, -20.55, 3.35, 3.1);
+  portrait(
+    "/assets/bathroom-portrait.png",
+    8,
+    2,
+    -20.55,
+    1.35,
+    1.5,
+    "bathroom",
+  );
+  portrait(
+    "/assets/corridor-portrait.png",
+    0,
+    2,
+    -20.55,
+    3.35,
+    3.1,
+    "corridor",
+  );
+  async function refreshAds() {
+    try {
+      const response = await fetch("/api/ads");
+      if (!response.ok) return;
+      const data = await response.json();
+      for (const slot of data.slots) {
+        const entry = adMaterials.get(slot.id);
+        if (!entry || entry.url === slot.image) continue;
+        loader.load(
+          slot.image,
+          (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            entry.material.map.dispose();
+            entry.material.map = texture;
+            entry.material.needsUpdate = true;
+            entry.url = slot.image;
+          },
+          undefined,
+          () => {},
+        );
+      }
+    } catch {
+      /* Original portraits stay visible when ad service is unavailable. */
+    }
+  }
+  refreshAds();
+  const adRefresh = setInterval(refreshAds, 30000);
+  window.addEventListener("pagehide", () => clearInterval(adRefresh), {
+    once: true,
+  });
   for (const r of mansionRooms) {
     const c = document.createElement("canvas");
     c.width = 512;
