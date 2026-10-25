@@ -81,6 +81,15 @@ export class Soundscape {
       media.loop = ["home", "gameplay"].includes(name);
       media.hidden = true;
       media.volume = 0;
+      // Music always runs in real time, independently of effect pitch or game clocks.
+      const normalSpeed = () => {
+        if (media.defaultPlaybackRate !== 1) media.defaultPlaybackRate = 1;
+        if (media.playbackRate !== 1) media.playbackRate = 1;
+        media.preservesPitch = true;
+      };
+      normalSpeed();
+      for (const event of ["ratechange", "loadedmetadata", "play"])
+        media.addEventListener(event, normalSpeed);
       media.addEventListener("error", () =>
         this.stats.errors.push(`${name}: media load error`),
       );
@@ -98,6 +107,8 @@ export class Soundscape {
     // Later clicks unlock audio too; an already-finished outcome must stay finished.
     if (["win", "loss"].includes(track) && this.tracks[track].ended) return;
     try {
+      this.tracks[track].defaultPlaybackRate = 1;
+      this.tracks[track].playbackRate = 1;
       await this.tracks[track].play();
       if (track === this.track) {
         this.blocked = false;

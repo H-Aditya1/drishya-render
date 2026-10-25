@@ -193,6 +193,8 @@ try {
   await photograph(b, "hide");
   await pose(b, B, 8, -16.2, 0);
   await photograph(b, "portrait");
+  await pose(b, B, 16, -12.5, -Math.PI / 4);
+  await photograph(b, "bath-clearance");
   await pose(a, A, 0, -16, Math.PI);
   await photograph(a, "weapon");
   await pose(a, A, -12, 0, 0);
@@ -256,6 +258,27 @@ try {
     assert.equal(
       await page.locator(`#music-${track}`).evaluate((e) => e.loop),
       false,
+    );
+    // Simulate a changed browser media speed and verify music recovers to real time.
+    await page.locator(`#music-${track}`).evaluate((el) => {
+      el.defaultPlaybackRate = 1.75;
+      el.playbackRate = 2;
+    });
+    await page.waitForFunction((track) => {
+      const el = document.getElementById(`music-${track}`);
+      return el.playbackRate === 1 && el.defaultPlaybackRate === 1;
+    }, track);
+    const playback = await page
+      .locator(`#music-${track}`)
+      .evaluate(async (el) => {
+        const start = el.currentTime,
+          wall = performance.now();
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        return (el.currentTime - start) / ((performance.now() - wall) / 1000);
+      });
+    assert.ok(
+      playback > 0.75 && playback < 1.25,
+      `${track} speed: ${playback}`,
     );
     assert.match(
       await page.locator("#resultcaption").innerText(),

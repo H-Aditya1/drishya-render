@@ -1,5 +1,13 @@
 # Verification — दृश्य
 
+## Render repository fixes — 25 October 2026
+
+- Music explicitly starts at 1x and restores both current/default playback speed on media play, metadata and rate-change events. Original MP3 files decode without FFmpeg errors; the intermittent user-reported speed change was not reproduced without simulated rate changes.
+- Moved bathroom tub from z=-12 to z=-15. Its bowl, rim, water, tap and feet now derive their position from the same shared prop as its collision box. Checked the rendered bathroom and at least 0.5m clearance from other furniture/walls.
+- All 23 unit/server checks passed. Focused `node test/browser-fixes.mjs` passed four native win/loss playback measurements (0.994–1.001x), forced-speed recovery and ended-track non-replay, with zero page/media errors. Screenshot and timing evidence: `test-results/fixes-1792927027297/`.
+- Full gameplay browser run stopped on the existing opponent-footstep pan assertion; the full visual run timed out clicking Join before the outcome checks. Those suites are not claimed to pass for this revision. The focused check directly exercises production Soundscape and mansion render modules; hardware listening remains manual.
+- Changes are exclusive to H-Aditya1/drishya-render, the Render deployment repository.
+
 Verified on Windows with Node 24.13 and Playwright Chromium.
 
 ## Automated results

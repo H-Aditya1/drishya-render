@@ -1,5 +1,5 @@
 import * as THREE from "./vendor/three.module.js";
-import { mansionRooms } from "/shared/mansion.mjs";
+import { mansionRooms, mansionProps } from "/shared/mansion.mjs";
 import { catPose } from "/shared/cat.mjs";
 
 export function buildDetails(scene) {
@@ -124,13 +124,14 @@ export function buildDetails(scene) {
       roughness: 0.22,
     }),
   );
-  bowl(18.5, 0.16, -12, 0.98, 0.6, 1.95);
-  ellipsoid(18.5, 0.59, -12, 0.8, 0.008, 1.59, water);
-  rim(18.5, 0.79, -12, 0.91, 1.83);
-  tap(18.5, 1, -13.65);
+  const bath = mansionProps.find((p) => p.kind === "bathtub");
+  bowl(bath.x, 0.16, bath.z, 0.98, 0.6, 1.95);
+  ellipsoid(bath.x, 0.59, bath.z, 0.8, 0.008, 1.59, water);
+  rim(bath.x, 0.79, bath.z, 0.91, 1.83);
+  tap(bath.x, 1, bath.z - 1.65);
   for (const dx of [-0.65, 0.65])
     for (const dz of [-1.4, 1.4])
-      ellipsoid(18.5 + dx, 0.15, -12 + dz, 0.13, 0.16, 0.18, copper);
+      ellipsoid(bath.x + dx, 0.15, bath.z + dz, 0.13, 0.16, 0.18, copper);
   const tileA = new THREE.MeshStandardMaterial({
       color: 0x76928a,
       roughness: 0.6,

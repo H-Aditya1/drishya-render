@@ -4,6 +4,7 @@ import { move, hit, swap, validInput, blocked } from "../shared/game.mjs";
 import { spawnChoice, visible } from "../shared/game.mjs";
 import { teamScores, shouldEnd, perspectivePhase } from "../shared/match.mjs";
 import { gunPosition } from "../shared/game.mjs";
+import { mansionProps } from "../shared/mansion.mjs";
 import {
   inputPacket,
   readInput,
@@ -22,6 +23,15 @@ const input = {
   grenade: false,
   fov: 75,
 };
+test("bathroom tub has clearance from furniture and walls", () => {
+  const bath = mansionProps.find((p) => p.kind === "bathtub");
+  for (const prop of mansionProps) {
+    if (prop === bath || (prop.room !== 3 && prop.kind !== "wall")) continue;
+    const gapX = Math.abs(bath.x - prop.x) - bath.w - prop.w;
+    const gapZ = Math.abs(bath.z - prop.z) - bath.d - prop.d;
+    assert.ok(Math.max(gapX, gapZ) >= 0.5, `tub too close to ${prop.kind}`);
+  }
+});
 test("input binary round trip", () =>
   assert.deepEqual(readInput(inputPacket(input)), input));
 test("snapshot quantization and acknowledgement", () => {
