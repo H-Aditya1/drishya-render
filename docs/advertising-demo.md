@@ -10,10 +10,10 @@ The game refreshes active pictures every 30 seconds and preserves the existing p
 2. Get free test SOL for the buyer account from the [Solana faucet](https://faucet.solana.com/). For a clear demonstration, use a second account as the buyer and your first account as the recipient. Test SOL has no monetary value.
 3. In the Render service for this repo, use `npm ci --include=dev && npm run build:ads` as the build command and `npm start` as the start command. The wallet bundle is also committed; there is no browser CDN dependency.
 4. For a quick test-SOL-only demo, set `ADS_DATA_FILE=/tmp/drishya-demo-ads.json`. **This temporary demo store can disappear when Render restarts/redeploys**, resetting pictures, bookings and payment recovery. For retained bookings, attach persistent storage at `/var/data` and set `ADS_DATA_FILE=/var/data/drishya-ads.json` instead. Use one service instance; the local JSON journal does not support shared writes from multiple instances.
-5. Set `ADS_SOLANA_RECIPIENT` to the public Solana address you copied. Optionally set `ADS_PRICE_LAMPORTS` (default `10000`, or 0.00001 test SOL), `ADS_DURATION_HOURS` (default `24`; use `0.016666666666666666` for a one-minute demo), and `SOLANA_DEVNET_RPC_URL` for a dedicated Devnet RPC. The public RPC may throttle requests.
+5. The owner supplied `G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE` as the default public receiving address. `ADS_SOLANA_RECIPIENT` overrides it if set in Render; remove any stale override or set it to this address. An explicitly empty value disables checkout. Optionally set `ADS_PRICE_LAMPORTS` (default `10000`, or 0.00001 test SOL), `ADS_DURATION_HOURS` (default `24`; use `0.016666666666666666` for a one-minute demo), and `SOLANA_DEVNET_RPC_URL` for a dedicated Devnet RPC. The public RPC may throttle requests.
 6. Redeploy. Open **Place your pictures · Devnet demo** on the homepage. Review the price/recipient, connect MetaMask, and approve the Devnet transfer. Use **Check previous payment** until it finalizes. Then upload both images and click **Use these two pictures**. Close the popup and play; active images appear within 30 seconds.
 
-Until the recipient and storage path are configured, the page explains the missing setup and prevents payment. This is a Devnet-only demo: the server checks the RPC genesis hash and refuses other networks. It does not charge real SOL or provide a mainnet checkout.
+The recipient is configured in the repository. Checkout still requires `ADS_DATA_FILE` in Render; until a storage path is configured, the page explains the missing setup and prevents payment. This is a Devnet-only demo: the server checks the RPC genesis hash and refuses other networks. It does not charge real SOL or provide a mainnet checkout.
 
 ## Local demo
 
@@ -21,7 +21,7 @@ PowerShell, in this repo:
 
 ```powershell
 npm ci --include=dev
-$env:ADS_SOLANA_RECIPIENT = 'YOUR_PUBLIC_SOLANA_ADDRESS'
+$env:ADS_SOLANA_RECIPIENT = 'G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE'
 $env:ADS_DATA_FILE = Join-Path $PWD 'ad-data/bookings.json'
 npm start
 ```

@@ -12,6 +12,9 @@ import sharp from "sharp";
 
 const MEMO = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+// Public recipient supplied by the owner for the Solana Devnet demo.
+export const DEFAULT_AD_RECIPIENT =
+  "G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE";
 export const slots = [
   {
     id: "bathroom",
@@ -57,7 +60,7 @@ export function createAds({
   connection,
   now = Date.now,
 } = {}) {
-  const recipient = env.ADS_SOLANA_RECIPIENT || "";
+  const recipient = env.ADS_SOLANA_RECIPIENT ?? DEFAULT_AD_RECIPIENT;
   const lamports = Number(env.ADS_PRICE_LAMPORTS || 10000);
   const duration = Number(env.ADS_DURATION_HOURS || 24) * 3600000;
   const filename = env.ADS_DATA_FILE ? path.resolve(env.ADS_DATA_FILE) : null;

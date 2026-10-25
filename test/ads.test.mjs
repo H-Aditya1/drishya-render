@@ -123,13 +123,55 @@ async function serve(handler) {
     },
   };
 }
-test("checkout requires recipient and storage", async () => {
+test("default recipient is visible but checkout still requires storage", async () => {
   const app = await serve(createAds({ env: {} }));
   try {
-    assert.equal((await app.request()).data.enabled, false);
+    const config = (await app.request()).data;
+    assert.equal(config.enabled, false);
+    assert.equal(
+      config.recipient,
+      "G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE",
+    );
     assert.equal((await app.request("/orders", {})).status, 503);
   } finally {
     await new Promise((r) => app.server.close(r));
+  }
+});
+test("default checkout transaction pays the owner-supplied address on Devnet", async () => {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "drishya-recipient-"));
+  const connection = {
+    getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    getLatestBlockhash: async () => ({
+      blockhash: (await Keypair.generate()).publicKey.toBase58(),
+      lastValidBlockHeight: 123,
+    }),
+  };
+  const app = await serve(
+    createAds({
+      env: { ADS_DATA_FILE: path.join(folder, "orders.json") },
+      connection,
+    }),
+  );
+  try {
+    const config = (await app.request()).data;
+    assert.equal(config.enabled, true);
+    assert.equal(config.network, "Solana Devnet");
+    const result = await app.request("/orders", { payer });
+    assert.equal(result.status, 201);
+    const transaction = Transaction.from(
+      Buffer.from(result.data.transaction, "base64"),
+    );
+    assert.equal(
+      transaction.instructions[0].keys[1].pubkey.toBase58(),
+      "G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE",
+    );
+    assert.equal(
+      Buffer.from(transaction.instructions[0].data).readBigUInt64LE(4),
+      10000n,
+    );
+  } finally {
+    await new Promise((r) => app.server.close(r));
+    fs.rmSync(folder, { recursive: true, force: true });
   }
 });
 test("orders sanitize images, verify finalized payment, resist replay, queue slots and survive restart", async () => {
