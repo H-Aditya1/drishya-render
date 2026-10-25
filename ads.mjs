@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { randomUUID } from "node:crypto";
 import {
   Connection,
@@ -11,7 +12,8 @@ import {
 import sharp from "sharp";
 
 const MEMO = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
-const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+// RPC genesis hashes are full hashes; Wallet Standard chain IDs use a shortened reference.
+const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 // Public recipient supplied by the owner for the Solana Devnet demo.
 export const DEFAULT_AD_RECIPIENT =
   "G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE";
@@ -29,11 +31,13 @@ export const slots = [
 ];
 
 export function verifiesPayment(tx, order) {
+  const blockTime = Number(tx?.blockTime);
   if (
     !tx ||
     tx.meta?.err !== null ||
-    !tx.blockTime ||
-    tx.blockTime * 1000 < order.created - 30000
+    !Number.isSafeInteger(blockTime) ||
+    blockTime <= 0 ||
+    blockTime * 1000 < order.created - 30000
   )
     return false;
   const keys = tx.transaction.message.accountKeys;
@@ -46,7 +50,8 @@ export function verifiesPayment(tx, order) {
       i.parsed?.type === "transfer" &&
       i.parsed.info.source === order.payer &&
       i.parsed.info.destination === order.recipient &&
-      i.parsed.info.lamports === order.lamports,
+      (i.parsed.info.lamports === order.lamports ||
+        i.parsed.info.lamports === BigInt(order.lamports)),
   );
   const memo = instructions.some(
     (i) =>
@@ -63,8 +68,16 @@ export function createAds({
   const recipient = env.ADS_SOLANA_RECIPIENT ?? DEFAULT_AD_RECIPIENT;
   const lamports = Number(env.ADS_PRICE_LAMPORTS || 10000);
   const duration = Number(env.ADS_DURATION_HOURS || 24) * 3600000;
-  const filename = env.ADS_DATA_FILE ? path.resolve(env.ADS_DATA_FILE) : null;
+  // The Devnet demo needs no extra Render storage setting.
+  const dataFile =
+    env.ADS_DATA_FILE ?? path.join(os.tmpdir(), "drishya-demo-ads.json");
+  const filename = dataFile ? path.resolve(dataFile) : null;
   const enabled = !!recipient && !!filename;
+  const disabledReason = !recipient
+    ? "Ad payments are disabled by the owner."
+    : !filename
+      ? "Ad storage is disabled by the owner."
+      : null;
   if (recipient) new PublicKey(recipient);
   if (
     !Number.isSafeInteger(lamports) ||
@@ -91,11 +104,12 @@ export function createAds({
     fs.renameSync(`${filename}.tmp`, filename);
   };
   const json = (res, status, body) => {
+    const encoded = JSON.stringify(body);
     res.writeHead(status, {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
     });
-    res.end(JSON.stringify(body));
+    res.end(encoded);
   };
   async function body(req) {
     let length = 0;
@@ -121,6 +135,7 @@ export function createAds({
       if (req.method === "GET" && url.pathname === "/api/ads") {
         json(res, 200, {
           enabled,
+          disabledReason,
           network: "Solana Devnet",
           chain: "solana:devnet",
           recipient,
@@ -157,8 +172,7 @@ export function createAds({
         }
       } else if (!enabled)
         json(res, 503, {
-          error:
-            "Ad checkout awaits the owner’s receiving wallet and persistent storage configuration.",
+          error: disabledReason,
         });
       else if (req.method === "POST" && url.pathname === "/api/ads/orders") {
         const input = await body(req);
@@ -204,7 +218,7 @@ export function createAds({
           transaction: Buffer.from(
             await tx.serialize({ requireAllSignatures: false }),
           ).toString("base64"),
-          lastValidBlockHeight,
+          lastValidBlockHeight: String(lastValidBlockHeight),
         });
       } else if (req.method === "POST" && url.pathname === "/api/ads/confirm") {
         const { id, signature } = await body(req);

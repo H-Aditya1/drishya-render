@@ -21,7 +21,8 @@ async function api(path, body) {
       : {},
   );
   const data = await response.json();
-  if (!response.ok) throw Error("Ad-space is unavailable right now.");
+  if (!response.ok)
+    throw Error(data.error || "Could not reach ad checkout. Please try again.");
   return data;
 }
 function pending() {
@@ -70,7 +71,11 @@ async function load() {
   $("queue").hidden = bookedUntil <= Date.now() + 1000;
   $("queue").textContent =
     `Next available from ${new Date(bookedUntil).toLocaleString()}.`;
-  status(config.enabled ? "" : "Ad-space is unavailable right now.");
+  status(
+    config.enabled
+      ? ""
+      : config.disabledReason || "Ad payments are disabled by the owner.",
+  );
   $("pay").disabled = !config.enabled || !!pending();
   const saved = pending();
   if (saved?.signature) {
@@ -94,6 +99,7 @@ $("pay").addEventListener("click", async () => {
   if (busy || pending()) return;
   busy = true;
   $("pay").disabled = true;
+  status("Connecting to MetaMask…");
   try {
     let wallet = wallets
       .get()
@@ -195,5 +201,5 @@ $("artwork").addEventListener("submit", async (event) => {
 });
 load().catch(() => {
   $("confirmation").hidden = true;
-  status("Ad-space is unavailable right now.");
+  status("Could not load ad checkout. Please reopen this window to try again.");
 });

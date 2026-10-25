@@ -49,7 +49,7 @@ test("invalid advertising configuration leaves the game server available", async
 function payment(order) {
   return {
     meta: { err: null },
-    blockTime: Math.floor(time / 1000),
+    blockTime: BigInt(Math.floor(time / 1000)),
     transaction: {
       message: {
         accountKeys: [{ pubkey: payer, signer: true }],
@@ -58,7 +58,7 @@ function payment(order) {
             programId: SystemProgram.programId.toBase58(),
             parsed: {
               type: "transfer",
-              info: { source: payer, destination: recipient, lamports: 10000 },
+              info: { source: payer, destination: recipient, lamports: 10000n },
             },
           },
           {
@@ -84,7 +84,7 @@ test("payment verification rejects failed, stale, unsigned, incorrect-recipient/
       t.meta.err = {};
     },
     (t) => {
-      t.blockTime -= 60;
+      t.blockTime -= 60n;
     },
     (t) => {
       t.transaction.message.accountKeys[0].signer = false;
@@ -123,15 +123,26 @@ async function serve(handler) {
     },
   };
 }
-test("default recipient is visible but checkout still requires storage", async () => {
+test("default demo checkout is enabled without Render environment settings", async () => {
   const app = await serve(createAds({ env: {} }));
   try {
     const config = (await app.request()).data;
-    assert.equal(config.enabled, false);
+    assert.equal(config.enabled, true);
+    assert.equal(config.disabledReason, null);
     assert.equal(
       config.recipient,
       "G5HvwjNTUJQTZa4yEUXPZxUf1a6kAEzpdovGHv5pJqqE",
     );
+  } finally {
+    await new Promise((r) => app.server.close(r));
+  }
+});
+test("explicitly empty storage disables payments", async () => {
+  const app = await serve(createAds({ env: { ADS_DATA_FILE: "" } }));
+  try {
+    const config = (await app.request()).data;
+    assert.equal(config.enabled, false);
+    assert.equal(config.disabledReason, "Ad storage is disabled by the owner.");
     assert.equal((await app.request("/orders", {})).status, 503);
   } finally {
     await new Promise((r) => app.server.close(r));
@@ -140,10 +151,10 @@ test("default recipient is visible but checkout still requires storage", async (
 test("default checkout transaction pays the owner-supplied address on Devnet", async () => {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), "drishya-recipient-"));
   const connection = {
-    getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     getLatestBlockhash: async () => ({
       blockhash: (await Keypair.generate()).publicKey.toBase58(),
-      lastValidBlockHeight: 123,
+      lastValidBlockHeight: 123n,
     }),
   };
   const app = await serve(
@@ -180,10 +191,10 @@ test("orders sanitize images, verify finalized payment, resist replay, queue slo
   const env = { ADS_SOLANA_RECIPIENT: recipient, ADS_DATA_FILE: filename };
   const signatures = new Map();
   const connection = {
-    getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    getGenesisHash: async () => "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     getLatestBlockhash: async () => ({
       blockhash: (await Keypair.generate()).publicKey.toBase58(),
-      lastValidBlockHeight: 123,
+      lastValidBlockHeight: 123n,
     }),
     getParsedTransaction: async (sig) => signatures.get(sig) || null,
   };

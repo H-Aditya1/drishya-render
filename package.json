@@ -12,7 +12,8 @@
     "test:visual": "node test/visuals.mjs",
     "test:unit": "node --test test/*.test.mjs",
     "build:ads": "node scripts/build-ads.mjs",
-    "test:ads": "node --test test/ads.test.mjs && node test/ads-browser.mjs"
+    "test:ads": "node --test test/ads.test.mjs && node test/ads-browser.mjs",
+    "test:ads:devnet": "node test/ads-devnet-smoke.mjs"
   },
   "dependencies": {
     "@metamask/connect-solana": "^2.1.1",

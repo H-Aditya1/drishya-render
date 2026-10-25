@@ -24,13 +24,10 @@ try {
   );
   await page.locator("#advertiseOption").click();
   const frame = page.frameLocator("#advertiseDialog iframe");
-  await frame
-    .locator("#status")
-    .filter({ hasText: "unavailable right now" })
-    .waitFor();
-  assert.equal(await frame.locator("#pay").isDisabled(), true);
+  await frame.locator("#pay:not([disabled])").waitFor();
+  assert.equal(await frame.locator("#pay").isDisabled(), false);
   assert.equal(await frame.locator("#artwork").isHidden(), true);
-  await page.screenshot({ path: "test-results/ads/popup-disabled.png" });
+  await page.screenshot({ path: "test-results/ads/popup-default.png" });
   await page.getByRole("button", { name: "CLOSE ×" }).click();
   await page.locator("#enter").click();
   await page.locator("#entryForm:not(.hidden)").waitFor();
@@ -174,7 +171,7 @@ try {
   await page.locator("#advertiseOption").click();
   await frame
     .locator("#status")
-    .filter({ hasText: "unavailable right now" })
+    .filter({ hasText: "Could not load ad checkout" })
     .waitFor();
   await page.getByRole("button", { name: "CLOSE ×" }).click();
   await page.locator("#enter").click();
