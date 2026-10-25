@@ -257,7 +257,7 @@ try {
     );
     assert.equal(
       await page.locator(`#music-${track}`).evaluate((e) => e.loop),
-      false,
+      true,
     );
     // Simulate a changed browser media speed and verify music recovers to real time.
     await page.locator(`#music-${track}`).evaluate((el) => {
@@ -287,22 +287,20 @@ try {
     await page.screenshot({
       path: path.join(output, `drishya-${outcome}.png`),
     });
-    // Seek the native player to its real end; another gesture must not restart it.
+    // Seeking to the end must naturally loop at normal speed.
     await page.locator(`#music-${track}`).evaluate((el) => {
-      el.currentTime = el.duration - 0.05;
+      el.currentTime = el.duration - 0.1;
     });
-    await page.waitForFunction(
-      (track) => document.getElementById(`music-${track}`).ended,
-      track,
-    );
-    await page.keyboard.press("Tab");
-    await page.waitForTimeout(100);
-    assert.equal(
-      await page
-        .locator(`#music-${track}`)
-        .evaluate((el) => el.ended && el.paused),
-      true,
-    );
+    await page.waitForFunction((track) => {
+      const el = document.getElementById(`music-${track}`);
+      return (
+        el.loop &&
+        !el.paused &&
+        el.currentTime > 0.02 &&
+        el.currentTime < 3 &&
+        el.playbackRate === 1
+      );
+    }, track);
     assert.equal(
       await page.evaluate(() => window.telemetry.sound.mode),
       "result",
@@ -342,7 +340,7 @@ try {
           "muted looping eye video, paused in match",
           "body-based room names, fade, borrowed POV ignored",
           "personalized win/loss via actual match outcome",
-          "supplied nonlooping outcome tracks, lobby transition",
+          "supplied looping outcome tracks at normal speed, lobby transition",
         ],
       },
       null,

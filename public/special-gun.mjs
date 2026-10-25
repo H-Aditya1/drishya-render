@@ -69,13 +69,13 @@ function finish(kind) {
   return texture;
 }
 
-export function createSpecialGun() {
+function weapon(name) {
   materials ||= {
     steel: new THREE.MeshStandardMaterial({
-      color: 0x9caeb7,
+      color: 0xaebdc4,
       map: finish("steel"),
-      metalness: 0.75,
-      roughness: 0.4,
+      metalness: 0.7,
+      roughness: 0.38,
     }),
     brass: new THREE.MeshStandardMaterial({
       color: 0xb99b65,
@@ -93,10 +93,10 @@ export function createSpecialGun() {
       map: finish("wood"),
       roughness: 0.72,
     }),
-    dark: new THREE.MeshStandardMaterial({ color: 0x12191d, roughness: 0.76 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x10171b, roughness: 0.76 }),
   };
   const gun = new THREE.Group();
-  gun.name = "Engraved special hand cannon";
+  gun.name = name;
   const part = (name, geometry, material, x, y, z) => {
     const mesh = new THREE.Mesh(geometry, materials[material]);
     mesh.name = name;
@@ -106,104 +106,207 @@ export function createSpecialGun() {
   };
   const box = (name, material, x, y, z, w, h, d) =>
     part(name, new THREE.BoxGeometry(w, h, d), material, x, y, z);
-  const barrel = part(
-    "Octagonal worn steel barrel",
-    new THREE.CylinderGeometry(0.067, 0.078, 0.48, 8),
+  const tube = (name, material, x, y, z, radius, length, sides = 16) => {
+    const mesh = part(
+      name,
+      new THREE.CylinderGeometry(radius, radius, length, sides),
+      material,
+      x,
+      y,
+      z,
+    );
+    mesh.rotation.x = Math.PI / 2;
+    return mesh;
+  };
+  const guard = (z) => {
+    const mesh = part(
+      "Brass trigger guard",
+      new THREE.TorusGeometry(0.068, 0.008, 6, 16),
+      "brass",
+      0,
+      -0.105,
+      z,
+    );
+    mesh.rotation.y = Math.PI / 2;
+    box("Trigger", "steel", 0, -0.1, z, 0.016, 0.05, 0.016).rotation.x = -0.3;
+  };
+  return { gun, part, box, tube, guard };
+}
+
+export function createRevolver() {
+  const { gun, part, box, tube, guard } = weapon(
+    "Colt-style single-action revolver",
+  );
+  tube("Long Colt barrel", "steel", 0, 0.025, -0.19, 0.043, 0.44, 12);
+  box("Ejector housing", "steel", 0.038, -0.017, -0.16, 0.03, 0.035, 0.36);
+  box("Top strap", "steel", 0, 0.112, 0.08, 0.11, 0.03, 0.24);
+  box("Revolver frame", "steel", 0, -0.045, 0.1, 0.12, 0.065, 0.25);
+  tube("Six-chamber cylinder", "steel", 0, 0.02, 0.09, 0.094, 0.17, 24);
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * Math.PI) / 3;
+    tube(
+      "Cylinder chamber face",
+      "dark",
+      Math.cos(angle) * 0.062,
+      0.02 + Math.sin(angle) * 0.062,
+      -0.0005,
+      0.021,
+      0.005,
+      10,
+    );
+    const flute = box(
+      "Cylinder flute",
+      "dark",
+      Math.cos(angle) * 0.092,
+      0.02 + Math.sin(angle) * 0.092,
+      0.09,
+      0.018,
+      0.009,
+      0.105,
+    );
+    flute.rotation.z = angle - Math.PI / 2;
+  }
+  tube("Recessed muzzle", "dark", 0, 0.025, -0.413, 0.028, 0.007);
+  part(
+    "Muzzle crown",
+    new THREE.TorusGeometry(0.035, 0.006, 6, 16),
     "steel",
     0,
     0.025,
-    -0.15,
-  );
-  barrel.rotation.x = Math.PI / 2;
-  box("Breech", "steel", 0, 0.005, 0.11, 0.145, 0.16, 0.23);
-  box("Barrel rib", "steel", 0, 0.096, -0.12, 0.032, 0.018, 0.43);
-  for (const z of [-0.32, -0.02]) {
-    const band = part(
-      "Brass barrel band",
-      new THREE.CylinderGeometry(0.079, 0.079, 0.025, 8),
-      "brass",
-      0,
-      0.025,
-      z,
-    );
-    band.rotation.x = Math.PI / 2;
-  }
-  const muzzle = part(
-    "Dark recessed bore",
-    new THREE.CylinderGeometry(0.047, 0.047, 0.007, 16),
-    "dark",
-    0,
-    0.025,
-    -0.393,
-  );
-  muzzle.rotation.x = Math.PI / 2;
-  part(
-    "Muzzle crown",
-    new THREE.TorusGeometry(0.057, 0.009, 6, 16),
-    "brass",
-    0,
-    0.025,
-    -0.395,
+    -0.416,
   );
   const grip = box(
-    "Checkered walnut grip",
+    "Walnut Colt grip",
     "wood",
     0,
     -0.17,
-    0.17,
-    0.115,
-    0.26,
-    0.145,
+    0.22,
+    0.105,
+    0.24,
+    0.14,
   );
-  grip.rotation.x = -0.25;
-  const cap = box(
-    "Brass grip heel",
-    "brass",
+  grip.rotation.x = -0.32;
+  box("Grip heel", "brass", 0, -0.275, 0.255, 0.11, 0.022, 0.145).rotation.x =
+    -0.32;
+  for (const side of [-1, 1]) {
+    const screw = part(
+      "Grip screw",
+      new THREE.CylinderGeometry(0.012, 0.012, 0.008, 10),
+      "brass",
+      side * 0.056,
+      -0.16,
+      0.22,
+    );
+    screw.rotation.z = Math.PI / 2;
+    box(
+      "Frame sideplate",
+      "engraved",
+      side * 0.063,
+      -0.025,
+      0.19,
+      0.006,
+      0.07,
+      0.08,
+    );
+  }
+  guard(0.06);
+  box(
+    "Exposed Colt hammer",
+    "steel",
     0,
-    -0.295,
-    0.2,
-    0.122,
-    0.025,
-    0.15,
+    0.12,
+    0.23,
+    0.035,
+    0.06,
+    0.055,
+  ).rotation.x = -0.4;
+  box("Front blade sight", "brass", 0, 0.084, -0.34, 0.014, 0.04, 0.035);
+  return gun;
+}
+
+export function createSpecialGun() {
+  const { gun, part, box, tube, guard } = weapon(
+    "Engraved double-barrel special shotgun",
   );
-  cap.rotation.x = -0.25;
+  for (const side of [-1, 1]) {
+    const x = side * 0.05;
+    tube("Shotgun barrel", "steel", x, 0.027, -0.2, 0.049, 0.58);
+    tube("Deep shotgun bore", "dark", x, 0.027, -0.493, 0.036, 0.008);
+    part(
+      "Shotgun muzzle crown",
+      new THREE.TorusGeometry(0.042, 0.007, 6, 16),
+      "steel",
+      x,
+      0.027,
+      -0.497,
+    );
+  }
+  box("Double-barrel rib", "steel", 0, 0.071, -0.2, 0.018, 0.018, 0.56);
+  box("Break-action receiver", "steel", 0, 0.005, 0.16, 0.205, 0.145, 0.24);
+  box("Checkered walnut fore-end", "wood", 0, -0.047, -0.17, 0.16, 0.08, 0.33);
+  box("Brass fore-end cap", "brass", 0, -0.047, -0.34, 0.167, 0.083, 0.015);
+  const neck = box(
+    "Walnut stock wrist",
+    "wood",
+    0,
+    -0.07,
+    0.3,
+    0.115,
+    0.13,
+    0.23,
+  );
+  neck.rotation.x = -0.3;
+  const stock = box("Shoulder stock", "wood", 0, -0.13, 0.45, 0.13, 0.21, 0.22);
+  stock.rotation.x = -0.17;
+  box(
+    "Stock butt plate",
+    "dark",
+    0,
+    -0.15,
+    0.562,
+    0.14,
+    0.22,
+    0.025,
+  ).rotation.x = -0.17;
   for (const side of [-1, 1]) {
     box(
-      "Engraved eye sideplate",
+      "Engraved shotgun eye sideplate",
       "engraved",
-      side * 0.077,
-      0.01,
-      0.11,
+      side * 0.107,
+      0.008,
+      0.16,
       0.009,
-      0.117,
-      0.185,
+      0.11,
+      0.19,
     );
-    for (const z of [0.045, 0.175]) {
-      const screw = part(
-        "Sideplate screw",
-        new THREE.CylinderGeometry(0.009, 0.009, 0.012, 8),
-        "steel",
-        side * 0.084,
-        0.045,
-        z,
-      );
-      screw.rotation.z = Math.PI / 2;
-    }
+    const pin = part(
+      "Receiver hinge pin",
+      new THREE.CylinderGeometry(0.013, 0.013, 0.014, 12),
+      "brass",
+      side * 0.114,
+      -0.035,
+      0.07,
+    );
+    pin.rotation.z = Math.PI / 2;
   }
-  const guard = part(
-    "Brass trigger guard",
-    new THREE.TorusGeometry(0.071, 0.009, 6, 16),
+  guard(0.16);
+  box(
+    "Break-action top lever",
+    "brass",
+    0.02,
+    0.093,
+    0.21,
+    0.025,
+    0.02,
+    0.12,
+  ).rotation.y = -0.25;
+  part(
+    "Front sight bead",
+    new THREE.SphereGeometry(0.012, 8, 6),
     "brass",
     0,
-    -0.115,
-    0.015,
+    0.096,
+    -0.4,
   );
-  guard.rotation.y = Math.PI / 2;
-  box("Trigger", "steel", 0, -0.108, 0.018, 0.018, 0.065, 0.018).rotation.x =
-    -0.35;
-  box("Hammer", "steel", 0, 0.116, 0.185, 0.035, 0.07, 0.065).rotation.x = -0.4;
-  box("Front brass sight", "brass", 0, 0.123, -0.32, 0.018, 0.04, 0.025);
-  for (const side of [-1, 1])
-    box("Rear sight", "steel", side * 0.025, 0.112, 0.12, 0.018, 0.035, 0.035);
   return gun;
 }

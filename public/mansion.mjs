@@ -1,6 +1,6 @@
 import * as THREE from "./vendor/three.module.js";
 import { mansionRooms, mansionProps } from "/shared/mansion.mjs";
-import { createSpecialGun } from "./special-gun.mjs";
+import { createSpecialGun, createRevolver } from "./special-gun.mjs";
 
 function surface(kind, color = "#685044", motif = "") {
   const c = document.createElement("canvas");
@@ -340,22 +340,6 @@ export function createFigure(scene, index) {
     color: 0x242421,
     roughness: 1,
   });
-  const metal = new THREE.MeshStandardMaterial({
-    color: 0x33404d,
-    map: surface("wood", "#53616b"),
-    metalness: 0.7,
-    roughness: 0.62,
-  });
-  const copper = new THREE.MeshStandardMaterial({
-    color: 0x9c704c,
-    metalness: 0.65,
-    roughness: 0.55,
-  });
-  const walnut = new THREE.MeshStandardMaterial({
-    color: 0x6b3828,
-    map: surface("wood", "#805337"),
-    roughness: 0.85,
-  });
   const mesh = (geometry, material, x, y, z) => {
     const o = new THREE.Mesh(geometry, material);
     o.position.set(x, y, z);
@@ -372,51 +356,8 @@ export function createFigure(scene, index) {
   const arms = [-1, 1].map((s) =>
     mesh(new THREE.BoxGeometry(0.17, 0.58, 0.2), coat, s * 0.36, 1.13, 0),
   );
-  const gun = new THREE.Group();
+  const gun = createRevolver();
   scene.add(gun);
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.42), metal);
-  gun.add(barrel);
-  const cylinder = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.105, 0.105, 0.16, 6),
-    metal,
-  );
-  cylinder.rotation.x = Math.PI / 2;
-  cylinder.position.z = 0.1;
-  gun.add(cylinder);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.24, 0.12), walnut);
-  grip.position.set(0, -0.11, 0.16);
-  grip.rotation.x = -0.25;
-  gun.add(grip);
-  const guard = new THREE.Mesh(
-    new THREE.TorusGeometry(0.07, 0.009, 6, 16),
-    copper,
-  );
-  guard.rotation.y = Math.PI / 2;
-  guard.position.set(0, -0.1, 0.025);
-  gun.add(guard);
-  const muzzle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.04, 0.018, 12),
-    dark,
-  );
-  muzzle.rotation.x = Math.PI / 2;
-  muzzle.position.z = -0.218;
-  gun.add(muzzle);
-  for (const side of [-1, 1]) {
-    const plate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.004, 0.045, 0.18),
-      copper,
-    );
-    plate.position.set(side * 0.047, 0.01, -0.06);
-    gun.add(plate);
-    for (let n = 0; n < 4; n++) {
-      const scratch = new THREE.Mesh(
-        new THREE.BoxGeometry(0.005, 0.003, 0.025),
-        dark,
-      );
-      scratch.position.set(side * 0.051, 0.01, -0.13 + n * 0.04);
-      gun.add(scratch);
-    }
-  }
   const specialGun = createSpecialGun();
   scene.add(specialGun);
   const torch = createTorch();

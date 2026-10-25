@@ -151,6 +151,8 @@ const server = http.createServer((req, res) => {
         }[path.extname(file)] || "application/octet-stream",
       );
       res.setHeader("X-Content-Type-Options", "nosniff");
+      // Revalidate code and pages after deployments instead of retaining an old client.
+      res.setHeader("Cache-Control", "no-cache");
       res.end(data);
     });
   } catch {

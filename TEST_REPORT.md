@@ -1,5 +1,14 @@
 # Verification — दृश्य
 
+## Latest requested revision — Colt, shotgun and looping music
+
+- Regular weapon is now a Colt-style single-action revolver with six visible cylinder chambers, walnut grip, ejector housing and metal barrel. Special is a visibly distinct textured double-barrel shotgun with walnut fore-end/stock and engraved sideplates. Existing 15/70 damage and 20/1 ammunition remain unchanged.
+- Runtime damage cue is the exact supplied `damage_received_trimmed.mp3`, decoded to 0.4884375s. Focused browser check scheduled one normal-speed cue within 2.2ms of calling the hit handler. This is software scheduling latency, not measured speaker/network latency.
+- Pacific Rim maps to winner and Heather to loser, using exact supplied bytes. Both now loop at 1x until lobby exit. Tests seek across the actual media boundary and verify native looping, plus recovery from a simulated 2x rate.
+- Bathroom render rechecked: bathtub and cupboard are separate. Tub is at x=18.5,z=-15, while bathroom cupboard is x=17.4,z=-10.7. Shared collision clearance check passes.
+- Focused browser regression passed: four win/loss playback measurements 0.991–1.001x, trimmed damage decoding/scheduling and both textured gun renders, zero page/media errors. Evidence: `test-results/fixes-1792928517164/`. All 23 then-current unit/server checks passed; added exact-file SHA-256 regression covers all three supplied recordings. Prior nonlooping/ended-track assertions below are historical and superseded.
+- HTML/JavaScript responses now explicitly revalidate after deployment. Live URL still returned owner-suspended status at initial check; user is resuming the Render service, so verify the new commit is live after publication.
+
 ## Render repository fixes — 25 October 2026
 
 - Special weapon now uses a separate procedural hand-cannon model with worn steel, engraved brass eye sideplates, checkered walnut grip, barrel bands, muzzle crown, sights, hammer and trigger guard. Textures/materials are shared by both player models and require no external downloads. Focused browser render passed with textured mesh assertions; preview: `test-results/fixes-1792927178537/special-gun.png`. The same run rechecked both outcome songs twice at 0.995–1.001x with zero errors.

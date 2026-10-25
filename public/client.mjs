@@ -983,7 +983,11 @@ function render(now) {
       $("healthFill").parentElement.setAttribute("aria-valuenow", me?.hp || 0);
       $("vitality").classList.toggle("hurt", me.hp <= 50);
       $("weapon").textContent =
-        myRole() === "hider" ? "UNARMED · STAY HIDDEN" : "";
+        myRole() === "hider"
+          ? "UNARMED · STAY HIDDEN"
+          : special && special.phase !== "invisible"
+            ? "SPECIAL SHOTGUN"
+            : "COLT REVOLVER";
       $("ammo").textContent =
         myRole() === "hider"
           ? "STAY HIDDEN"

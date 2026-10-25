@@ -78,7 +78,7 @@ export class Soundscape {
       media.id = `music-${name}`;
       media.src = root + file;
       media.preload = name === "intro" ? "auto" : "metadata";
-      media.loop = ["home", "gameplay"].includes(name);
+      media.loop = ["home", "gameplay", "win", "loss"].includes(name);
       media.hidden = true;
       media.volume = 0;
       // Music always runs in real time, independently of effect pitch or game clocks.
@@ -104,8 +104,6 @@ export class Soundscape {
   }
   async tryPlay(track = this.track) {
     if (!track) return;
-    // Later clicks unlock audio too; an already-finished outcome must stay finished.
-    if (["win", "loss"].includes(track) && this.tracks[track].ended) return;
     try {
       this.tracks[track].defaultPlaybackRate = 1;
       this.tracks[track].playbackRate = 1;
@@ -126,7 +124,7 @@ export class Soundscape {
     // Start media inside the gesture, before any fetch/await can consume activation.
     void this.tryPlay();
     if (!this.context) {
-      this.context = new AudioContext();
+      this.context = new AudioContext({ latencyHint: "interactive" });
       this.effects = this.context.createGain();
       this.effects.gain.value = this.volume;
       this.effects.connect(this.context.destination);
@@ -135,7 +133,7 @@ export class Soundscape {
         this.load("cat", "cat.mp3"),
         this.load("pistol", "pistol.mp3"),
         this.load("specialShot", "special-shot.mp3"),
-        this.load("hurt", "damage_received.wav"),
+        this.load("hurt", "damage_received_trimmed.mp3"),
       ]);
     }
     void this.context.resume().then(() => {

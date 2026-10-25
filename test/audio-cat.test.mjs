@@ -1,10 +1,38 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import { server, wss } from "../server.mjs";
 import { catPose, CAT_ESCAPE_SECONDS } from "../shared/cat.mjs";
 import { blocked } from "../shared/game.mjs";
 import { footstepSlices, FOOTSTEP_PROFILES } from "../public/audio.mjs";
+
+test("current damage and result assets exactly match the user's supplied recordings", () => {
+  for (const [file, hash] of [
+    [
+      "damage_received_trimmed.mp3",
+      "497f1fa79b2519aacecc34bcaa8ccc72683f458c85329ca5512ca7b855f5daaf",
+    ],
+    [
+      "victory.mp3",
+      "b63c0b78c2780dc85e613d16e1db3db2946e33a10f85811baad4e19c03f35b9a",
+    ],
+    [
+      "defeat.mp3",
+      "2d36b826685f863a01c7ef31f9593b4c746b4108f89a09d8aee44c556b4e1b6a",
+    ],
+  ])
+    assert.equal(
+      createHash("sha256")
+        .update(
+          fs.readFileSync(
+            new URL(`../public/assets/audio/${file}`, import.meta.url),
+          ),
+        )
+        .digest("hex"),
+      hash,
+    );
+});
 
 test("cat jumps clear of bed, passes real doorway/corridor and fades in dark room without crossing collision", () => {
   let doorway = false,
@@ -65,6 +93,7 @@ test("local audio assets serve correct media types and byte ranges for streaming
       "special-shot.mp3",
       "damage_received.m4a",
       "damage_received.wav",
+      "damage_received_trimmed.mp3",
     ]) {
       const response = await fetch(root + file, {
         headers: { Range: "bytes=0-15" },
