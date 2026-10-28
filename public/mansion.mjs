@@ -1,6 +1,7 @@
 import * as THREE from "./vendor/three.module.js";
 import { mansionRooms, mansionProps } from "/shared/mansion.mjs";
 import { createSpecialGun, createRevolver } from "./special-gun.mjs";
+import { materialTexture, cabinetMirror } from "./material-textures.mjs";
 
 function surface(kind, color = "#685044", motif = "") {
   const c = document.createElement("canvas");
@@ -21,6 +22,14 @@ function surface(kind, color = "#685044", motif = "") {
     for (let y = 0; y < 256; y += 32) {
       g.strokeRect(0, y, 256, 32);
       g.strokeRect(y % 64 ? 75 : 170, y, 256, 32);
+      g.fillStyle = "#d3ac7130";
+      g.fillRect(0, y + 2, 256, 0.75);
+      g.fillStyle = "#171c1645";
+      for (const x of [7, 247]) {
+        g.beginPath();
+        g.arc(x, y + 7, 0.8, 0, Math.PI * 2);
+        g.fill();
+      }
     }
     // Wavy grain and knots give wood a worn, directional surface.
     g.strokeStyle = "#25190f30";
@@ -57,12 +66,23 @@ function surface(kind, color = "#685044", motif = "") {
     g.fillRect(0, 180, 256, 76);
     g.strokeStyle = "#6d5335";
     for (let x = 0; x < 256; x += 42) g.strokeRect(x + 4, 188, 34, 58);
+    for (let n = 0; n < 35; n++) {
+      const x = (n * 67) % 256,
+        y = (n * 43) % 175;
+      g.strokeStyle = "#14191230";
+      g.lineWidth = 0.5;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + 2, y + 6);
+      g.lineTo(x - 1, y + 10);
+      g.stroke();
+    }
   } else {
-    g.strokeStyle = "#c4a573";
-    g.lineWidth = 3;
+    g.strokeStyle = "#b8a17b";
+    g.lineWidth = 2;
     g.strokeRect(9, 9, 238, 238);
     g.strokeRect(17, 17, 222, 222);
-    g.globalAlpha = 0.65;
+    g.globalAlpha = 0.48;
     for (let x = 42; x < 240; x += 43)
       for (let y = 42; y < 240; y += 43) {
         g.save();
@@ -99,6 +119,12 @@ function surface(kind, color = "#685044", motif = "") {
         }
         g.restore();
       }
+    g.globalAlpha = 1;
+    for (let n = 0; n < 256; n += 2) {
+      g.fillStyle = n % 4 ? "#fff4d110" : "#0b17152a";
+      g.fillRect(n, 0, 0.5, 256);
+      g.fillRect(0, n, 256, 0.5);
+    }
   }
   // Soft edge wear avoids pristine, uniformly flat surfaces.
   const age = g.createLinearGradient(0, 0, 256, 256);
@@ -125,16 +151,18 @@ export function buildMansion(scene) {
       roughness: 0.88,
       flatShading: true,
     });
-  const wood = mat(0x9e8062, surface("wood")),
-    dark = mat(0x302923),
-    brass = mat(0x9b7950),
-    black = mat(0x101514),
-    fabric = mat(0x4b4940),
-    plaster = mat(0x665e51),
+  const wood = mat(0x9e8062, materialTexture("wood")),
+    dark = mat(0x302923, materialTexture("wood")),
+    brass = mat(0x9b7950, materialTexture("metal")),
+    black = mat(0x101514, materialTexture("leather")),
+    fabric = mat(0x4b4940, materialTexture("fabric")),
+    plaster = mat(0x8b8375, materialTexture("plaster")),
     wall = mat(0xb0a58b, surface("wall", "#51473d"));
-  function cube(x, y, z, w, h, d, m = wood) {
+  const mirror = cabinetMirror();
+  mirror.name = "Dining cupboard mirror";
+  function cube(x, y, z, w, h, d, m = wood, angle = 0) {
     if (!batches.has(m)) batches.set(m, []);
-    batches.get(m).push([x, y, z, w, h, d]);
+    batches.get(m).push([x, y, z, w, h, d, angle]);
   }
   const floorTexture = surface("wood", "#6f5741");
   floorTexture.repeat.set(12, 12);
@@ -209,13 +237,22 @@ export function buildMansion(scene) {
             dark,
           );
     } else if (kind === "chair") {
+      const back = Math.sign(z) || 1;
       cube(x, 0.5, z, w * 2, 0.15, d * 2, wood);
       cube(x, 0.61, z, w * 1.75, 0.08, d * 1.75, fabric);
       for (const sx of [-1, 1])
-        cube(x + sx * (w - 0.06), 0.93, z + d - 0.06, 0.09, 0.7, 0.1, dark);
-      cube(x, 1.23, z + d - 0.06, w * 2, 0.12, 0.12, wood);
+        cube(
+          x + sx * (w - 0.06),
+          0.93,
+          z + back * (d - 0.06),
+          0.09,
+          0.7,
+          0.1,
+          dark,
+        );
+      cube(x, 1.23, z + back * (d - 0.06), w * 2, 0.12, 0.12, wood);
       for (const sx of [-0.5, 0, 0.5])
-        cube(x + sx * w, 0.96, z + d - 0.06, 0.055, 0.5, 0.08, wood);
+        cube(x + sx * w, 0.96, z + back * (d - 0.06), 0.055, 0.5, 0.08, wood);
       for (const sx of [-1, 1])
         for (const sz of [-1, 1])
           cube(x + sx * 0.3, 0.26, z + sz * 0.3, 0.1, 0.52, 0.1, dark);
@@ -242,8 +279,48 @@ export function buildMansion(scene) {
             [brass, fabric, wood][j % 3],
           );
       }
+    } else if (kind === "wardrobe" && p.room === 0) {
+      // Preserve the original solid back and footprint while opening the front.
+      cube(x, h / 2, z + d - 0.08, w * 2, h, 0.16, dark);
+      for (const side of [-1, 1])
+        cube(x + side * (w - 0.09), h / 2, z, 0.18, h, d * 2, wood);
+      for (let row = 0; row <= 4; row++) {
+        const shelfY = 0.12 + row * 0.56;
+        cube(x, shelfY, z, w * 2, 0.09, d * 2, wood);
+        if (row === 4) continue;
+        for (let book = 0; book < 12; book++) {
+          const bookX = x - w + 0.25 + book * 0.22;
+          const height = 0.32 + ((book * 7 + row * 3) % 5) * 0.025;
+          cube(
+            bookX,
+            shelfY + height / 2 + 0.05,
+            z - d + 0.27,
+            0.16 + (book % 2) * 0.025,
+            height,
+            0.42,
+            [fabric, wood, brass, dark][(book + row) % 4],
+          );
+          if (book % 2 === 0)
+            cube(
+              bookX,
+              shelfY + height * 0.75,
+              z - d + 0.052,
+              0.115,
+              0.022,
+              0.012,
+              plaster,
+            );
+        }
+      }
+      cube(x, h - 0.06, z, w * 2, 0.12, d * 2, wood);
     } else {
       cube(x, h / 2, z, w * 2, h, d * 2, dark);
+      const mirrored = kind === "wardrobe" && p.room === 1;
+      // Crown, plinth and recessed panels turn plain cover into readable cabinets.
+      cube(x, h - 0.07, z, w * 2, 0.14, d * 2, wood);
+      cube(x, 0.1, z, w * 2, 0.18, d * 2, wood);
+      for (const side of [-1, 1])
+        cube(x + side * (w + 0.005), h / 2, z, 0.025, h - 0.44, d * 1.5, wood);
       for (const side of [-1, 1]) {
         cube(
           x + side * w * 0.49,
@@ -252,8 +329,29 @@ export function buildMansion(scene) {
           w * 0.92,
           h - 0.18,
           0.06,
-          wood,
+          mirrored ? mirror : wood,
         );
+        if (!mirrored)
+          for (const level of [0.3, 0.72]) {
+            cube(
+              x + side * w * 0.49,
+              h * level,
+              z - d - 0.06,
+              w * 0.72,
+              h * 0.29,
+              0.025,
+              dark,
+            );
+            cube(
+              x + side * w * 0.49,
+              h * level,
+              z - d - 0.077,
+              w * 0.65,
+              h * 0.25,
+              0.014,
+              wood,
+            );
+          }
         cube(x + side * 0.12, 1.15, z - d - 0.08, 0.045, 0.2, 0.05, brass);
       }
     }
@@ -297,6 +395,7 @@ export function buildMansion(scene) {
   const carpetMat = mat(0xffffff, surface("rug", "#502c29", "diamond"));
   carpetMat.map.repeat.set(1, 10);
   cube(0, 0.012, 0, 2.6, 0.018, 39, carpetMat);
+  const ceiling = mat(0x8d8b80, materialTexture("plaster"));
   for (const [i, r] of mansionRooms.entries()) {
     const col = "#" + r.color.toString(16).padStart(6, "0");
     const rug = mat(0xffffff, surface("rug", col, r.motif));
@@ -304,16 +403,8 @@ export function buildMansion(scene) {
     // A coloured wall panel keeps even wall-facing reveals readable.
     const wallpaper = mat(0xffffff, surface("wall", col));
     cube(Math.sign(r.x) * 20.66, 2.05, r.z, 0.025, 2.5, 10, wallpaper);
-    // Looking straight up still reveals this room's patterned ceiling.
-    cube(
-      r.x,
-      3.77,
-      r.z,
-      17.5,
-      0.035,
-      12.5,
-      mat(0x8f8a7d, surface("rug", col, r.motif)),
-    );
+    // Plaster ceilings have their own finish, independent of each room's rug.
+    cube(r.x, 3.77, r.z, 17.5, 0.035, 12.5, ceiling);
     const frameX = Math.sign(r.x) * 20.59;
     cube(frameX, 2.2, r.z, 0.13, 1.65, 1.25, brass);
     cube(frameX - Math.sign(r.x) * 0.08, 2.2, r.z, 0.03, 1.46, 1.06, black);
@@ -365,6 +456,51 @@ export function buildMansion(scene) {
     cube(r.x + 3, 2.25, r.z - 6, 0.07, 1.8, 0.05, wood);
     cube(r.x + 3, 2.25, r.z - 6, 1.7, 0.07, 0.05, wood);
   }
+  // Quiet, stationary ceiling fans in the living rooms; shared box batches.
+  for (const [x, z] of [
+    [-12, -13.5],
+    [12, 0],
+    [12, 13.5],
+  ]) {
+    cube(x, 3.58, z, 0.1, 0.3, 0.1, brass);
+    cube(x, 3.39, z, 0.28, 0.12, 0.28, dark);
+    for (let blade = 0; blade < 4; blade++) {
+      const angle = Math.PI / 4 + (blade * Math.PI) / 2;
+      cube(
+        x + Math.cos(angle) * 0.47,
+        3.4,
+        z - Math.sin(angle) * 0.47,
+        0.72,
+        0.035,
+        0.18,
+        wood,
+        angle,
+      );
+    }
+  }
+  // A small four-candle chandelier, with one restrained, shadow-free light.
+  const candleGlow = new THREE.MeshBasicMaterial({
+    color: 0xffd99b,
+    toneMapped: false,
+  });
+  cube(-12, 3.65, 0, 0.28, 0.12, 0.28, dark);
+  cube(-12, 3.25, 0, 0.035, 0.7, 0.035, brass);
+  cube(-12, 2.91, 0, 1.28, 0.045, 0.06, brass);
+  cube(-12, 2.91, 0, 0.06, 0.045, 1.28, brass);
+  for (const [dx, dz] of [
+    [-0.58, 0],
+    [0.58, 0],
+    [0, -0.58],
+    [0, 0.58],
+  ]) {
+    cube(-12 + dx, 2.97, dz, 0.12, 0.06, 0.12, brass);
+    cube(-12 + dx, 3.08, dz, 0.075, 0.18, 0.075, plaster);
+    cube(-12 + dx, 3.19, dz, 0.045, 0.07, 0.045, candleGlow);
+  }
+  const chandelierLight = new THREE.PointLight(0xffd09a, 3.5, 7, 2);
+  chandelierLight.name = "Dining chandelier";
+  chandelierLight.position.set(-12, 2.95, 0);
+  group.add(chandelierLight);
   const shadowCanvas = document.createElement("canvas");
   shadowCanvas.width = shadowCanvas.height = 64;
   const sg = shadowCanvas.getContext("2d");
@@ -398,9 +534,10 @@ export function buildMansion(scene) {
   for (const [m, items] of batches) {
     const mesh = new THREE.InstancedMesh(box, m, items.length),
       dummy = new THREE.Object3D();
-    items.forEach(([x, y, z, w, h, d], i) => {
+    items.forEach(([x, y, z, w, h, d, angle], i) => {
       dummy.position.set(x, y, z);
       dummy.scale.set(w, h, d);
+      dummy.rotation.set(0, angle, 0);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
     });

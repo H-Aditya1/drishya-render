@@ -1,6 +1,7 @@
 import * as THREE from "./vendor/three.module.js";
 import { mansionRooms, mansionProps } from "/shared/mansion.mjs";
 import { catPose } from "/shared/cat.mjs";
+import { materialTexture } from "./material-textures.mjs";
 
 export function buildDetails(scene) {
   const existing = new Set(scene.children);
@@ -8,30 +9,36 @@ export function buildDetails(scene) {
     unitSphere = new THREE.SphereGeometry(1, 20, 12),
     unitRing = new THREE.TorusGeometry(1, 0.12, 10, 40);
   const ivory = new THREE.MeshStandardMaterial({
+    map: materialTexture("ceramic"),
     color: 0xc4c8b5,
     roughness: 0.28,
     metalness: 0.12,
   });
   const copper = new THREE.MeshStandardMaterial({
+    map: materialTexture("metal"),
     color: 0x9c7950,
     roughness: 0.5,
     metalness: 0.6,
   });
   const wood = new THREE.MeshStandardMaterial({
+    map: materialTexture("wood"),
     color: 0x382a2c,
     roughness: 0.9,
   });
   const water = new THREE.MeshStandardMaterial({
+    map: materialTexture("water"),
     color: 0x426961,
     roughness: 0.18,
     metalness: 0.35,
   });
   const indigo = new THREE.MeshStandardMaterial({
+    map: materialTexture("fabric"),
     color: 0x34384c,
     roughness: 1,
     side: THREE.DoubleSide,
   });
   const dark = new THREE.MeshStandardMaterial({
+    map: materialTexture("metal"),
     color: 0x141c23,
     roughness: 0.9,
   });
@@ -133,10 +140,15 @@ export function buildDetails(scene) {
     for (const dz of [-1.4, 1.4])
       ellipsoid(bath.x + dx, 0.15, bath.z + dz, 0.13, 0.16, 0.18, copper);
   const tileA = new THREE.MeshStandardMaterial({
+      map: materialTexture("ceramic"),
       color: 0x76928a,
       roughness: 0.6,
     }),
-    tileB = new THREE.MeshStandardMaterial({ color: 0x293d43, roughness: 0.6 });
+    tileB = new THREE.MeshStandardMaterial({
+      color: 0x293d43,
+      map: materialTexture("ceramic"),
+      roughness: 0.6,
+    });
   const tileGeo = new THREE.BoxGeometry(0.97, 0.025, 0.97);
   for (const [parity, material] of [
     [0, tileA],
@@ -325,6 +337,7 @@ export function buildDetails(scene) {
   scene.add(cat);
   cat.position.set(12, 0.98, 14);
   const fur = new THREE.MeshStandardMaterial({
+    map: materialTexture("fur"),
     color: 0x837e72,
     roughness: 1,
     transparent: true,
