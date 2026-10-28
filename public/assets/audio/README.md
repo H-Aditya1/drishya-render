@@ -1,5 +1,7 @@
 # Supplied audio
 
+The defeat track uses a loss-only tempo correction of 0.85 with native pitch preservation. Victory remains at 1.0. The supplied audio bytes are unchanged; the loss tempo is restored after metadata loading, playback and rate changes.
+
 These are the user's recordings, copied locally on 2026-10-25. Runtime never reads Downloads.
 
 | Game file                   | Supplied file                                         | Use                                                                                         |

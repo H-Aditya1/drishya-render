@@ -61,6 +61,7 @@ try {
   assert.ok(damage.duration < 1);
   const timings = [];
   for (const track of ["win", "loss", "win", "loss"]) {
+    const expectedRate = track === "loss" ? 0.85 : 1;
     await page.evaluate((track) => window.sound.setOutcome(track), track);
     const el = page.locator(`#music-${track}`);
     await page.waitForFunction((track) => {
@@ -73,7 +74,10 @@ try {
     });
     await page.waitForFunction((track) => {
       const el = document.getElementById(`music-${track}`);
-      return el.defaultPlaybackRate === 1 && el.playbackRate === 1;
+      const expected = track === "loss" ? 0.85 : 1;
+      return (
+        el.defaultPlaybackRate === expected && el.playbackRate === expected
+      );
     }, track);
     const ratio = await el.evaluate(async (el) => {
       const time = el.currentTime,
@@ -81,7 +85,10 @@ try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       return (el.currentTime - time) / ((performance.now() - wall) / 1000);
     });
-    assert.ok(ratio > 0.8 && ratio < 1.2, `${track} playback speed ${ratio}`);
+    assert.ok(
+      Math.abs(ratio - expectedRate) < 0.15,
+      `${track} playback speed ${ratio}`,
+    );
     timings.push({ track, ratio });
     await el.evaluate((el) => {
       el.currentTime = el.duration - 0.1;
@@ -92,7 +99,7 @@ try {
         el.loop && !el.paused && el.currentTime > 0.02 && el.currentTime < 3
       );
     }, track);
-    assert.equal(await el.evaluate((el) => el.playbackRate), 1);
+    assert.equal(await el.evaluate((el) => el.playbackRate), expectedRate);
     await page.evaluate(() => {
       window.sound.setMode("menu");
       window.sound.update(performance.now() + 300);

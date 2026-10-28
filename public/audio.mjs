@@ -1,4 +1,6 @@
 const root = "/assets/audio/";
+// Loss-only tempo correction; preserve the recording's pitch and all other music.
+export const LOSS_PLAYBACK_RATE = 0.85;
 export const FOOTSTEP_PROFILES = Object.freeze({
   hunter: { rate: 0.88, cutoff: 1700 },
   hider: { rate: 1.12, cutoff: 3000 },
@@ -81,10 +83,12 @@ export class Soundscape {
       media.loop = ["home", "gameplay", "win", "loss"].includes(name);
       media.hidden = true;
       media.volume = 0;
-      // Music always runs in real time, independently of effect pitch or game clocks.
+      // Keep each track at its intended tempo, independent of effects/game clocks.
+      const rate = name === "loss" ? LOSS_PLAYBACK_RATE : 1;
       const normalSpeed = () => {
-        if (media.defaultPlaybackRate !== 1) media.defaultPlaybackRate = 1;
-        if (media.playbackRate !== 1) media.playbackRate = 1;
+        if (media.defaultPlaybackRate !== rate)
+          media.defaultPlaybackRate = rate;
+        if (media.playbackRate !== rate) media.playbackRate = rate;
         media.preservesPitch = true;
       };
       normalSpeed();
@@ -105,8 +109,9 @@ export class Soundscape {
   async tryPlay(track = this.track) {
     if (!track) return;
     try {
-      this.tracks[track].defaultPlaybackRate = 1;
-      this.tracks[track].playbackRate = 1;
+      const rate = track === "loss" ? LOSS_PLAYBACK_RATE : 1;
+      this.tracks[track].defaultPlaybackRate = rate;
+      this.tracks[track].playbackRate = rate;
       await this.tracks[track].play();
       if (track === this.track) {
         this.blocked = false;
