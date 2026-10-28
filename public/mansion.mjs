@@ -4,8 +4,10 @@ import { createSpecialGun, createRevolver } from "./special-gun.mjs";
 
 function surface(kind, color = "#685044", motif = "") {
   const c = document.createElement("canvas");
-  c.width = c.height = 256;
+  c.width = c.height = 512;
+  const scale = 2;
   const g = c.getContext("2d");
+  g.scale(scale, scale);
   g.fillStyle = color;
   g.fillRect(0, 0, 256, 256);
   // Deterministic wear: no asset downloads and identical clues on both clients.
@@ -19,6 +21,18 @@ function surface(kind, color = "#685044", motif = "") {
     for (let y = 0; y < 256; y += 32) {
       g.strokeRect(0, y, 256, 32);
       g.strokeRect(y % 64 ? 75 : 170, y, 256, 32);
+    }
+    // Wavy grain and knots give wood a worn, directional surface.
+    g.strokeStyle = "#25190f30";
+    g.lineWidth = 0.7;
+    for (let n = 0; n < 100; n++) {
+      g.beginPath();
+      for (let x = 0; x <= 256; x += 4) {
+        const y = n * 2.6 + Math.sin(x * 0.035 + n) * 1.5;
+        if (!x) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
     }
     g.strokeStyle = "#a3896225";
     for (let i = 0; i < 50; i++) {
@@ -86,6 +100,13 @@ function surface(kind, color = "#685044", motif = "") {
         g.restore();
       }
   }
+  // Soft edge wear avoids pristine, uniformly flat surfaces.
+  const age = g.createLinearGradient(0, 0, 256, 256);
+  age.addColorStop(0, "#e2cba014");
+  age.addColorStop(0.55, "#00000000");
+  age.addColorStop(1, "#05070740");
+  g.fillStyle = age;
+  g.fillRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -101,7 +122,7 @@ export function buildMansion(scene) {
     new THREE.MeshStandardMaterial({
       color,
       map,
-      roughness: 0.94,
+      roughness: 0.88,
       flatShading: true,
     });
   const wood = mat(0x9e8062, surface("wood")),
@@ -133,10 +154,45 @@ export function buildMansion(scene) {
       )
     ) {
       cube(x, h - 0.1, z, w * 2, 0.2, d * 2, wood);
+      // Aprons and inset edging make table silhouettes readable at eye level.
+      for (const side of [-1, 1]) {
+        cube(x, h - 0.27, z + side * (d - 0.1), w * 1.9, 0.18, 0.1, dark);
+        cube(x + side * (w - 0.1), h - 0.27, z, 0.1, 0.18, d * 1.9, dark);
+        cube(
+          x,
+          h + 0.005,
+          z + side * (d - 0.06),
+          w * 1.92,
+          0.025,
+          0.035,
+          brass,
+        );
+      }
       if (kind === "bed") {
         cube(x, h + 0.1, z, w * 1.9, 0.2, d * 1.9, fabric);
         cube(x, h + 0.25, z - d + 0.5, w * 1.7, 0.15, 0.6, plaster);
         cube(x, h, z + d - 0.1, w * 2, 1.3, 0.15, dark);
+        for (const side of [-1, 1]) {
+          cube(
+            x + side * w * 0.48,
+            h + 0.27,
+            z - d + 0.52,
+            w * 0.8,
+            0.19,
+            0.55,
+            plaster,
+          );
+          cube(
+            x + side * (w - 0.09),
+            h + 0.35,
+            z + d - 0.1,
+            0.12,
+            0.6,
+            0.19,
+            wood,
+          );
+        }
+        cube(x, h + 0.22, z + 0.65, w * 1.88, 0.035, 1.1, fabric);
       } else if (kind === "pew")
         cube(x, h - 0.25, z + d - 0.1, w * 2, 0.6, 0.15, wood);
       else if (["counter", "dresser", "altar"].includes(kind))
@@ -154,7 +210,12 @@ export function buildMansion(scene) {
           );
     } else if (kind === "chair") {
       cube(x, 0.5, z, w * 2, 0.15, d * 2, wood);
-      cube(x, 0.94, z + d - 0.06, w * 2, 0.65, 0.12, wood);
+      cube(x, 0.61, z, w * 1.75, 0.08, d * 1.75, fabric);
+      for (const sx of [-1, 1])
+        cube(x + sx * (w - 0.06), 0.93, z + d - 0.06, 0.09, 0.7, 0.1, dark);
+      cube(x, 1.23, z + d - 0.06, w * 2, 0.12, 0.12, wood);
+      for (const sx of [-0.5, 0, 0.5])
+        cube(x + sx * w, 0.96, z + d - 0.06, 0.055, 0.5, 0.08, wood);
       for (const sx of [-1, 1])
         for (const sz of [-1, 1])
           cube(x + sx * 0.3, 0.26, z + sz * 0.3, 0.1, 0.52, 0.1, dark);
@@ -165,6 +226,9 @@ export function buildMansion(scene) {
         cube(x, h / 2, z + zz, 0.6, h + 0.1, 0.1, brass);
     } else if (kind === "bookcase") {
       cube(x, h / 2, z, w * 2, h, d * 2, dark);
+      cube(x, h - 0.07, z, w * 2, 0.14, d * 2, wood);
+      for (const side of [-1, 1])
+        cube(x + side * (w - 0.06), h / 2, z - d + 0.03, 0.12, h, 0.12, wood);
       for (let row = 0; row < 4; row++) {
         cube(x, 0.3 + row * 0.65, z - 0.1, w * 2, 0.09, d * 2, wood);
         for (let j = 0; j < 7; j++)
@@ -193,6 +257,34 @@ export function buildMansion(scene) {
         cube(x + side * 0.12, 1.15, z - d - 0.08, 0.045, 0.2, 0.05, brass);
       }
     }
+  }
+  // The library's reading desk gains drawers and a small stack of closed books.
+  // Every detail stays inside the existing furniture footprint.
+  cube(-11, 0.75, -12.65, 1.9, 0.24, 0.07, dark);
+  for (const side of [-1, 1]) {
+    cube(-11 + side * 0.48, 0.75, -12.7, 0.84, 0.18, 0.035, wood);
+    cube(-11 + side * 0.48, 0.75, -12.73, 0.18, 0.035, 0.035, brass);
+  }
+  for (let n = 0; n < 3; n++) {
+    cube(
+      -11.6 + n * 0.035,
+      1.08 + n * 0.1,
+      -12,
+      0.46,
+      0.025,
+      0.32,
+      [fabric, dark, brass][n],
+    );
+    cube(-11.6 + n * 0.035, 1.115 + n * 0.1, -12, 0.43, 0.045, 0.29, plaster);
+    cube(
+      -11.6 + n * 0.035,
+      1.15 + n * 0.1,
+      -12,
+      0.46,
+      0.025,
+      0.32,
+      [fabric, dark, brass][n],
+    );
   }
   // Door lintels, beams, and portraits make the hallway feel like an old house.
   for (const x of [-3, 3])
@@ -273,6 +365,36 @@ export function buildMansion(scene) {
     cube(r.x + 3, 2.25, r.z - 6, 0.07, 1.8, 0.05, wood);
     cube(r.x + 3, 2.25, r.z - 6, 1.7, 0.07, 0.05, wood);
   }
+  const shadowCanvas = document.createElement("canvas");
+  shadowCanvas.width = shadowCanvas.height = 64;
+  const sg = shadowCanvas.getContext("2d");
+  const falloff = sg.createRadialGradient(32, 32, 5, 32, 32, 32);
+  falloff.addColorStop(0, "rgba(0,0,0,0.42)");
+  falloff.addColorStop(1, "rgba(0,0,0,0)");
+  sg.fillStyle = falloff;
+  sg.fillRect(0, 0, 64, 64);
+  const contact = new THREE.MeshBasicMaterial({
+    map: new THREE.CanvasTexture(shadowCanvas),
+    transparent: true,
+    depthWrite: false,
+  });
+  const contactGeometry = new THREE.PlaneGeometry(1, 1);
+  const shadowProps = mansionProps.filter((p) => p.kind !== "wall");
+  const shadows = new THREE.InstancedMesh(
+    contactGeometry,
+    contact,
+    shadowProps.length,
+  );
+  const shadowPose = new THREE.Object3D();
+  shadowPose.rotation.x = -Math.PI / 2;
+  shadowProps.forEach((p, i) => {
+    shadowPose.position.set(p.x, 0.042, p.z);
+    shadowPose.scale.set(p.w * 2.7, p.d * 2.7, 1);
+    shadowPose.updateMatrix();
+    shadows.setMatrixAt(i, shadowPose.matrix);
+  });
+  shadows.computeBoundingSphere();
+  group.add(shadows);
   for (const [m, items] of batches) {
     const mesh = new THREE.InstancedMesh(box, m, items.length),
       dummy = new THREE.Object3D();
@@ -346,16 +468,74 @@ export function createFigure(scene, index) {
     group.add(o);
     return o;
   };
-  mesh(new THREE.CylinderGeometry(0.28, 0.37, 0.65, 5), coat, 0, 1.12, 0);
+  mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.65, 8), coat, 0, 1.12, 0);
+  // Collar, coat seams, belt, hair and boots add detail within the existing hit volume.
+  mesh(new THREE.CylinderGeometry(0.14, 0.21, 0.13, 8), dark, 0, 1.45, 0);
+  mesh(new THREE.BoxGeometry(0.035, 0.48, 0.025), dark, 0, 1.13, -0.29);
+  mesh(new THREE.BoxGeometry(0.5, 0.07, 0.36), dark, 0, 0.87, 0);
+  for (const y of [0.99, 1.12, 1.25])
+    mesh(new THREE.SphereGeometry(0.018, 5, 4), skin, 0.035, y, -0.29);
+  mesh(
+    new THREE.SphereGeometry(0.245, 8, 5, 0, Math.PI * 2, 0, 1.35),
+    dark,
+    0,
+    1.64,
+    0,
+  );
   mesh(new THREE.BoxGeometry(0.48, 0.23, 0.3), dark, 0, 0.72, 0);
   mesh(new THREE.IcosahedronGeometry(0.25, 0), skin, 0, 1.62, 0);
   mesh(new THREE.BoxGeometry(0.31, 0.08, 0.06), dark, 0, 1.66, -0.2);
   const legs = [-1, 1].map((s) =>
     mesh(new THREE.BoxGeometry(0.19, 0.65, 0.22), dark, s * 0.16, 0.36, 0),
   );
+  legs.forEach((leg) => {
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.17, 0.31), dark);
+    boot.position.set(0, -0.24, -0.045);
+    leg.add(boot);
+  });
   const arms = [-1, 1].map((s) =>
     mesh(new THREE.BoxGeometry(0.17, 0.58, 0.2), coat, s * 0.36, 1.13, 0),
   );
+  // Bake stationary clothing/head details into one draw per material.
+  // Legs and arms stay independent for the existing movement animation.
+  const stationary = group.children.filter(
+    (part) => !legs.includes(part) && !arms.includes(part),
+  );
+  for (const material of [coat, skin, dark]) {
+    const parts = stationary.filter((part) => part.material === material);
+    if (!parts.length) continue;
+    const geometries = parts.map((part) => {
+      part.updateMatrix();
+      return (
+        part.geometry.index
+          ? part.geometry.toNonIndexed()
+          : part.geometry.clone()
+      ).applyMatrix4(part.matrix);
+    });
+    const merged = new THREE.BufferGeometry();
+    for (const attribute of ["position", "normal", "uv"]) {
+      const size = geometries[0].getAttribute(attribute).itemSize;
+      const count = geometries.reduce(
+        (sum, geometry) => sum + geometry.getAttribute(attribute).array.length,
+        0,
+      );
+      const array = new Float32Array(count);
+      let offset = 0;
+      for (const geometry of geometries) {
+        const source = geometry.getAttribute(attribute).array;
+        array.set(source, offset);
+        offset += source.length;
+      }
+      merged.setAttribute(attribute, new THREE.BufferAttribute(array, size));
+    }
+    merged.computeBoundingSphere();
+    for (const part of parts) {
+      group.remove(part);
+      part.geometry.dispose();
+    }
+    for (const geometry of geometries) geometry.dispose();
+    group.add(new THREE.Mesh(merged, material));
+  }
   const gun = createRevolver();
   scene.add(gun);
   const specialGun = createSpecialGun();

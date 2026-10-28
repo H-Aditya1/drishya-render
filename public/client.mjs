@@ -86,7 +86,7 @@ camera.rotation.order = "YXZ";
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
-scene.add(new THREE.HemisphereLight(0x73858a, 0x241c18, 0.22));
+scene.add(new THREE.HemisphereLight(0x73858a, 0x241c18, 0.28));
 // A small sphere of light follows the viewed eyes, not the controller's body.
 const lantern = new THREE.PointLight(0xffdab0, 28, 11, 1.45);
 scene.add(lantern);
