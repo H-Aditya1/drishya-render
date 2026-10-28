@@ -1,5 +1,4 @@
 import * as THREE from "./vendor/three.module.js";
-import { materialTexture } from "./material-textures.mjs";
 
 let materials;
 function finish(kind) {
@@ -79,7 +78,6 @@ function weapon(name) {
       roughness: 0.38,
     }),
     brass: new THREE.MeshStandardMaterial({
-      map: materialTexture("metal"),
       color: 0xb99b65,
       metalness: 0.7,
       roughness: 0.35,
@@ -95,11 +93,7 @@ function weapon(name) {
       map: finish("wood"),
       roughness: 0.72,
     }),
-    dark: new THREE.MeshStandardMaterial({
-      color: 0x10171b,
-      roughness: 0.76,
-      map: materialTexture("leather"),
-    }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x10171b, roughness: 0.76 }),
   };
   const gun = new THREE.Group();
   gun.name = name;
