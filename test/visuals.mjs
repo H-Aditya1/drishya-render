@@ -99,12 +99,15 @@ try {
   await a.locator("#home").click();
   for (const page of [a, b]) await page.locator("#enter").click();
   await a.locator("#name").fill("Ash");
-  await a.locator("#join").click();
+  await a.screenshot({ path: path.join(output, "host-join-options.png") });
+  await a.locator("#hostRoom").click();
   await a.waitForFunction(
     () => document.getElementById("roomcode").textContent.length === 4,
   );
   const code = await a.locator("#roomcode").innerText();
   await b.locator("#name").fill("Wren");
+  await b.locator("#joinRoom").click();
+  await b.screenshot({ path: path.join(output, "join-room-code.png") });
   await b.locator("#code").fill(code);
   await b.locator("#join").click();
   await a.locator("#ready").click();
@@ -241,6 +244,8 @@ try {
   room.stageEnd = Date.now() - 1;
   await a.locator("#results").waitFor();
   await b.locator("#results").waitFor();
+  assert.equal(await a.locator("#scores p").count(), 2);
+  assert.equal(await a.locator("#scores .round-detail").count(), 0);
   for (const [page, outcome, track, caption] of [
     [a, "win", "win", "Adrenaline"],
     [b, "loss", "loss", "Death knocked"],
@@ -266,7 +271,8 @@ try {
     });
     await page.waitForFunction((track) => {
       const el = document.getElementById(`music-${track}`);
-      return el.playbackRate === 1 && el.defaultPlaybackRate === 1;
+      const rate = track === "loss" ? 0.85 : 1;
+      return el.playbackRate === rate && el.defaultPlaybackRate === rate;
     }, track);
     const playback = await page
       .locator(`#music-${track}`)
@@ -298,7 +304,7 @@ try {
         !el.paused &&
         el.currentTime > 0.02 &&
         el.currentTime < 3 &&
-        el.playbackRate === 1
+        el.playbackRate === (track === "loss" ? 0.85 : 1)
       );
     }, track);
     assert.equal(

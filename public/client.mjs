@@ -222,7 +222,13 @@ function send(m) {
 }
 function connect() {
   if (ws?.readyState === 1) {
-    send({ type: "join", name: $("name").value, code: $("code").value, token });
+    send({
+      type: "join",
+      name: $("name").value,
+      code: $("code").value,
+      token,
+      host: !$("code").value,
+    });
     return;
   }
   if (connecting) return;
@@ -240,6 +246,7 @@ function connect() {
       code: $("code").value,
       token,
       spectator: false,
+      host: !$("code").value,
     });
   };
   ws.onmessage = (e) => {
@@ -480,13 +487,6 @@ function connect() {
             s.name + " — " + s.points + " rounds won · " + s.kills + " kills";
           return e;
         }),
-        ...(m.rounds || []).map((r) => {
-          const e = document.createElement("p");
-          e.className = "round-detail";
-          e.textContent =
-            "Round " + r.round + " · " + r.name + " · " + r.reason;
-          return e;
-        }),
       );
       $("results").showModal();
       document.exitPointerLock?.();
@@ -508,10 +508,31 @@ function connect() {
     $("status").textContent = "Server unavailable";
   };
 }
-$("join").onclick = () => {
+$("hostRoom").onclick = () => {
+  $("code").value = "";
+  token = null;
   unlockAudio();
   connect();
 };
+$("joinRoom").onclick = () => {
+  $("joinFields").classList.remove("hidden");
+  $("joinRoom").setAttribute("aria-expanded", "true");
+  $("code").focus();
+};
+$("join").onclick = () => {
+  $("code").value = $("code").value.trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test($("code").value)) {
+    $("status").textContent = "Enter the four-letter room code to join.";
+    $("code").focus();
+    return;
+  }
+  token = null;
+  unlockAudio();
+  connect();
+};
+$("code").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") $("join").click();
+});
 $("volume").oninput = () => {
   sounds.setVolume(+$("volume").value);
 };
@@ -834,12 +855,14 @@ function render(now) {
     figure.gun.visible &&= !specialGun && !hiddenFromMe(p);
     figure.specialGun.visible = active && specialGun && p.hp > 0;
     // A held torch is an object, not an additional light source or beam.
+    const torchForward = Math.cos(pose.pitch) * 0.35;
     figure.torch.position.set(
-      pose.x - Math.cos(pose.yaw) * 0.32 - Math.sin(pose.yaw) * 0.35,
-      pose.y + (pose.crouched ? 0.8 : 1.3),
-      pose.z + Math.sin(pose.yaw) * 0.32 - Math.cos(pose.yaw) * 0.35,
+      pose.x - Math.cos(pose.yaw) * 0.32 - Math.sin(pose.yaw) * torchForward,
+      pose.y + (pose.crouched ? 0.8 : 1.3) + Math.sin(pose.pitch) * 0.35,
+      pose.z + Math.sin(pose.yaw) * 0.32 - Math.cos(pose.yaw) * torchForward,
     );
-    figure.torch.rotation.y = pose.yaw;
+    figure.torch.rotation.order = "YXZ";
+    figure.torch.rotation.set(pose.pitch - Math.PI / 2, pose.yaw, 0);
     figure.torch.visible =
       active &&
       hasTorch &&
@@ -1155,6 +1178,13 @@ function render(now) {
       visibleTorchIds: figures
         .filter((figure) => figure.torch.visible)
         .map((figure) => figure.playerId),
+      torchAim: figures
+        .filter((figure) => figure.torch.visible)
+        .map((figure) => ({
+          id: figure.playerId,
+          yaw: figure.torch.rotation.y,
+          pitch: figure.torch.rotation.x + Math.PI / 2,
+        })),
       stage: room?.stage,
       round: room?.round,
       role: myRole(),

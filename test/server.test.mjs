@@ -66,6 +66,13 @@ test("room lifecycle, schema rejection, reconnect, host migration and capacity",
     let metric = await (await fetch("http://127.0.0.1:3093/metrics")).json();
     assert.ok(metric.rejected >= 1);
     assert.equal(metric.players, 2);
+    const [, hostOne] = await join({ name: "Host A", host: true });
+    const [, hostTwo] = await join({ name: "Host B", host: true });
+    assert.notEqual(
+      hostOne.code,
+      hostTwo.code,
+      "hosting creates a separate room instead of joining an open lobby",
+    );
   } finally {
     for (let ws of clients) ws.terminate();
     server.kill();

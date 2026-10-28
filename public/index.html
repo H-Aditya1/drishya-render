@@ -63,29 +63,33 @@
               value="Stranger"
               autocomplete="off"
           /></label>
-          <label
-            >ROOM CODE <span>leave blank to host</span
-            ><input
-              id="code"
-              maxlength="4"
-              placeholder="NEW ROOM"
-              autocomplete="off"
-          /></label>
-          <button id="join">OPEN THE DOORS ↗</button>
+          <button id="hostRoom">HOST A ROOM</button>
+          <button
+            id="joinRoom"
+            class="ghost"
+            aria-expanded="false"
+            aria-controls="joinFields"
+          >
+            JOIN A ROOM
+          </button>
+          <div id="joinFields" class="hidden">
+            <label
+              >ROOM CODE<input
+                id="code"
+                maxlength="4"
+                placeholder="ENTER ROOM CODE"
+                autocomplete="off"
+            /></label>
+            <button id="join">JOIN ROOM ↗</button>
+          </div>
         </div>
-        <p id="status" role="status">
-          TWO PLAYERS · HEADPHONES RECOMMENDED
-        </p>
+        <p id="status" role="status">TWO PLAYERS · HEADPHONES RECOMMENDED</p>
       </section>
       <aside class="house-note">
         <span>THE HOUSE KEEPS NO GUEST BOOK</span>
         <p data-distort>Only witnesses.</p>
         <i>LOOK CLOSELY. REMEMBER EVERYTHING.</i>
       </aside>
-      <footer>
-        <span>01 / DISAPPEAR</span><span>02 / BORROW THEIR SIGHT</span
-        ><span>03 / RETURN TO YOURSELF</span>
-      </footer>
     </main>
     <section id="tutorial" class="hidden newspaper" aria-label="How to play">
       <div class="paper-top">

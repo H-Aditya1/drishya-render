@@ -81,7 +81,9 @@ try {
   await b.locator("#enter").click();
   // Deterministic activation for concurrent software-rendered clients; physical menu clicking is also checked separately.
   await a.locator("#name").fill("Ash");
-  await a.locator("#join").dispatchEvent("click");
+  assert.equal(await a.locator("#joinFields").isVisible(), false);
+  assert.equal(await a.locator("#menu footer").count(), 0);
+  await a.locator("#hostRoom").dispatchEvent("click");
   await a.locator("#roomcode").waitFor();
   assert.equal(
     await a.evaluate(() => window.telemetry.sound.track),
@@ -90,6 +92,9 @@ try {
   );
   const code = await a.locator("#roomcode").innerText();
   await b.locator("#name").fill("Wren");
+  await b.locator("#joinRoom").click();
+  await b.locator("#join").click();
+  assert.match(await b.locator("#status").innerText(), /four-letter room code/);
   await b.locator("#code").fill(code);
   await b.locator("#join").dispatchEvent("click");
   await b.locator("#roomcode").waitFor();
@@ -271,6 +276,7 @@ try {
   A.queue = [];
   B.queue = [];
   await a.waitForTimeout(250);
+  const stepStart = await a.evaluate(() => performance.now());
   for (const page of [a, b])
     await page.evaluate(() =>
       window.dispatchEvent(
@@ -285,14 +291,18 @@ try {
       ),
     );
   await a.waitForFunction(
-    () =>
-      window.telemetry.sound.steps.some((s) => s.own) &&
-      window.telemetry.sound.steps.some((s) => !s.own),
+    (since) =>
+      window.telemetry.sound.steps.some((s) => s.own && s.at >= since) &&
+      window.telemetry.sound.steps.some((s) => !s.own && s.at >= since),
+    stepStart,
   );
-  const footstepPair = await a.evaluate(() => ({
-    own: window.telemetry.sound.steps.find((s) => s.own),
-    other: window.telemetry.sound.steps.find((s) => !s.own),
-  }));
+  const footstepPair = await a.evaluate(
+    (since) => ({
+      own: window.telemetry.sound.steps.find((s) => s.own && s.at >= since),
+      other: window.telemetry.sound.steps.find((s) => !s.own && s.at >= since),
+    }),
+    stepStart,
+  );
   assert.equal(footstepPair.own.role, "hunter");
   assert.equal(footstepPair.other.role, "hider");
   assert.ok(footstepPair.own.rate < footstepPair.other.rate);
@@ -318,6 +328,26 @@ try {
   await capture(b, "public/assets/guide-torch.png");
   assert.equal(await b.evaluate(() => window.telemetry.visibilityScale), 1.15);
   assert.equal(await a.evaluate(() => window.telemetry.visibilityScale), 1);
+  await b.evaluate(() =>
+    window.dispatchEvent(
+      new MouseEvent("mousemove", {
+        buttons: 1,
+        movementX: 30,
+        movementY: -70,
+      }),
+    ),
+  );
+  await b.waitForFunction(() => {
+    const state = window.telemetry;
+    const torch = state.torchAim?.find((torch) => torch.id === state.ownId);
+    return (
+      torch &&
+      Math.abs(torch.pitch - state.cameraPitch) < 0.01 &&
+      Math.abs(torch.yaw - state.cameraYaw) < 0.01 &&
+      torch.pitch > 0.1
+    );
+  });
+  await capture(b, "docs/torch-forward-aim.png");
   await a.waitForFunction(() => window.telemetry.specialAvailable);
   await a.bringToFront();
   await a.keyboard.press("f");
@@ -640,6 +670,8 @@ try {
       window.telemetry.sound.track === "home" && window.telemetry.sound.playing,
   );
   assert.equal(await a.evaluate(() => window.telemetry.sound.introDone), true);
+  assert.equal(await a.locator("#scores p").count(), 2);
+  assert.equal(await a.locator("#scores .round-detail").count(), 0);
   assert.match(await a.locator("#resulttitle").innerText(), /draw/i);
   await a.locator("#returnLobby").click();
   assert.equal(await a.locator("#lobby").isVisible(), true);

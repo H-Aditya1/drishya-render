@@ -483,9 +483,11 @@ wss.on("connection", (ws, req) => {
         let code = String(m.code || "").toUpperCase();
         r = code
           ? rooms.get(code)
-          : [...rooms.values()].find(
-              (q) => q.players.size < 2 && q.state !== "playing",
-            );
+          : m.host
+            ? null
+            : [...rooms.values()].find(
+                (q) => q.players.size < 2 && q.state !== "playing",
+              );
         if (code && !r) {
           send(ws, { type: "error", message: "Room not found" });
           return;

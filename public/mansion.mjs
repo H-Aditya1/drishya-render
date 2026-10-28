@@ -410,25 +410,72 @@ export function buildMansion(scene) {
   return group;
 }
 
+// Small shared maps add surface detail without extra meshes or render passes.
+const detailMaps = new Map();
+function detailMap(kind) {
+  if (detailMaps.has(kind)) return detailMaps.get(kind);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const g = canvas.getContext("2d");
+  g.fillStyle = "#dedbd2";
+  g.fillRect(0, 0, 128, 128);
+  if (kind === "lens") {
+    const glass = g.createRadialGradient(48, 42, 3, 64, 64, 64);
+    glass.addColorStop(0, "#fffce5");
+    glass.addColorStop(0.6, "#c4d3cb");
+    glass.addColorStop(1, "#697d79");
+    g.fillStyle = glass;
+    g.fillRect(0, 0, 128, 128);
+  } else if (kind === "metal") {
+    for (let i = 0; i < 90; i++) {
+      g.fillStyle = i % 3 ? "#ffffff25" : "#17242322";
+      g.fillRect((i * 47) % 128, (i * 29) % 128, 3 + (i % 15), 1);
+    }
+  } else {
+    g.strokeStyle = kind === "grip" ? "#18212165" : "#4c51452b";
+    g.lineWidth = kind === "grip" ? 3 : 1;
+    for (let n = 0; n < 128; n += kind === "grip" ? 8 : 4) {
+      g.beginPath();
+      g.moveTo(0, n);
+      g.lineTo(128, n);
+      g.stroke();
+      if (kind !== "grip") {
+        g.beginPath();
+        g.moveTo(n, 0);
+        g.lineTo(n, 128);
+        g.stroke();
+      }
+    }
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  detailMaps.set(kind, map);
+  return map;
+}
+
 export function createTorch() {
   const group = new THREE.Group();
   const copper = new THREE.MeshStandardMaterial({
     color: 0x8a6841,
     metalness: 0.65,
     roughness: 0.7,
+    map: detailMap("metal"),
   });
   const dark = new THREE.MeshStandardMaterial({
     color: 0x222b30,
     roughness: 0.85,
+    map: detailMap("grip"),
   });
   const glass = new THREE.MeshStandardMaterial({
     color: 0xd7cba0,
     emissive: 0x33270f,
     emissiveIntensity: 0.3,
     roughness: 0.5,
+    map: detailMap("lens"),
   });
   const handle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.04, 0.32, 8),
+    new THREE.CylinderGeometry(0.043, 0.038, 0.32, 8),
     dark,
   );
   const head = new THREE.Mesh(
@@ -441,7 +488,13 @@ export function createTorch() {
     glass,
   );
   lens.position.y = 0.255;
-  group.add(handle, head, lens);
+  const bulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.03, 6, 4),
+    new THREE.MeshBasicMaterial({ color: 0xffe6a8, toneMapped: false }),
+  );
+  bulb.name = "Torch glow";
+  bulb.position.y = 0.273;
+  group.add(handle, head, lens, bulb);
   return group;
 }
 
@@ -452,6 +505,7 @@ export function createFigure(scene, index) {
     color: index ? 0x5b4f3c : 0x465351,
     roughness: 1,
     flatShading: true,
+    map: detailMap("cloth"),
   });
   const skin = new THREE.MeshStandardMaterial({
     color: 0xaca18a,
@@ -461,6 +515,7 @@ export function createFigure(scene, index) {
   const dark = new THREE.MeshStandardMaterial({
     color: 0x242421,
     roughness: 1,
+    map: detailMap("cloth"),
   });
   const mesh = (geometry, material, x, y, z) => {
     const o = new THREE.Mesh(geometry, material);
@@ -483,8 +538,9 @@ export function createFigure(scene, index) {
     0,
   );
   mesh(new THREE.BoxGeometry(0.48, 0.23, 0.3), dark, 0, 0.72, 0);
-  mesh(new THREE.IcosahedronGeometry(0.25, 0), skin, 0, 1.62, 0);
-  mesh(new THREE.BoxGeometry(0.31, 0.08, 0.06), dark, 0, 1.66, -0.2);
+  mesh(new THREE.IcosahedronGeometry(0.25, 1), skin, 0, 1.62, 0);
+  mesh(new THREE.BoxGeometry(0.25, 0.045, 0.045), dark, 0, 1.66, -0.21);
+  mesh(new THREE.BoxGeometry(0.055, 0.08, 0.06), skin, 0, 1.59, -0.23);
   const legs = [-1, 1].map((s) =>
     mesh(new THREE.BoxGeometry(0.19, 0.65, 0.22), dark, s * 0.16, 0.36, 0),
   );

@@ -75,6 +75,16 @@ label span {
 #code {
   text-transform: uppercase;
 }
+@media (max-width: 760px) {
+  #entryForm > label {
+    grid-column: 1 / -1;
+  }
+  #entryForm #hostRoom,
+  #entryForm #joinRoom,
+  #joinFields #join {
+    grid-column: auto;
+  }
+}
 #game {
   position: fixed;
   width: 100%;
@@ -646,6 +656,30 @@ nav > span {
 }
 .join label {
   font-size: 10px;
+}
+#joinFields {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 150px 195px;
+  align-items: end;
+  gap: 12px;
+}
+#joinFields.hidden {
+  display: none;
+}
+#code {
+  text-transform: uppercase;
+}
+@media (max-width: 600px) {
+  #entryForm {
+    grid-template-columns: 1fr 1fr;
+  }
+  #entryForm > label {
+    grid-column: 1 / -1;
+  }
+  #joinFields {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 footer {
   font-size: 10px;

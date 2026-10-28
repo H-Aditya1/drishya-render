@@ -75,12 +75,15 @@ try {
   ]) {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("http://localhost:3093");
+    await page.locator("#enter").click();
     await page.locator("#name").fill(name);
-    if (page === b)
+    if (page === b) {
+      await page.locator("#joinRoom").click();
       await page
         .locator("#code")
         .fill(await a.locator("#roomcode").innerText());
-    await page.locator("#join").click();
+      await page.locator("#join").click();
+    } else await page.locator("#hostRoom").click();
     await page.locator("#ready").click();
   }
   await a.locator("#start").click();
